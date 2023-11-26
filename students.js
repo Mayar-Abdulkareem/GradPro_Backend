@@ -5,40 +5,54 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
-const userSchema = new mongoose.Schema({
+const studentSchema = new mongoose.Schema({
   regID: String,
   password: String,
 });
 
-const Student = mongoose.model("Student", userSchema);
-const Professor = mongoose.model("Professor", userSchema);
+const professorSchema = new mongoose.Schema({
+  regID: String,
+  password: String,
+  moderator: Boolean,
+});
+
+const Student = mongoose.model("Student", studentSchema);
+const Professor = mongoose.model("Professor", professorSchema);
 
 router.post("/login", async (req, res) => {
   const { regID, password } = req.body;
-
-  console.log("hello");
-
+  console.log(regID);
+  console.log(password);
   try {
     const student = await Student.findOne({ regID });
     let role;
-
-    console.log(student);
-    console.log(password);
+    console.log("1");
     if (!student) {
       const professor = await Professor.findOne({ regID });
+      console.log("2");
+
       if (!professor) {
+        console.log("3");
         return res
           .status(401)
           .json({ message: "Invalid registeration Number" });
-      } else if (!(await bcrypt.compare(password, professor.password))) {
+      } else if (password !== professor.password) {
+        console.log("4");
         return res.status(401).json({ message: "Wrong Password!" });
       }
-      role = "professor";
-    } else if (!(await bcrypt.compare(password, student.password))) {
+      if (professor.moderator) {
+        role = "moderator";
+      } else {
+        role = "professor";
+      }
+    } else if (password !== student.password) {
+      console.log("5");
       return res.status(401).json({ message: "Wrong Password!" });
     } else {
       role = "student";
     }
+
+    // (await bcrypt.compare(password, professor.password)) (await bcrypt.compare(password, student.password))
 
     // bcrypt.genSalt(10, (err, salt) => {
     //   if (err) {
