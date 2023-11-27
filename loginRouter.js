@@ -7,6 +7,7 @@ require("dotenv").config();
 const studentSchema = new mongoose.Schema({
   regID: String,
   password: String,
+  courses: Object,
 });
 
 const professorSchema = new mongoose.Schema({
@@ -56,4 +57,5 @@ router.post("/login", async (req, res) => {
   }
 });
 
-module.exports = router;
+exports.loginRoutes = router;
+exports.Student = Student;
