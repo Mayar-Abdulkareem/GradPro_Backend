@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
@@ -21,23 +20,17 @@ const Professor = mongoose.model("Professor", professorSchema);
 
 router.post("/login", async (req, res) => {
   const { regID, password } = req.body;
-  console.log(regID);
-  console.log(password);
   try {
     const student = await Student.findOne({ regID });
     let role;
-    console.log("1");
     if (!student) {
       const professor = await Professor.findOne({ regID });
-      console.log("2");
 
       if (!professor) {
-        console.log("3");
         return res
           .status(401)
           .json({ message: "Invalid registeration Number" });
       } else if (password !== professor.password) {
-        console.log("4");
         return res.status(401).json({ message: "Wrong Password!" });
       }
       if (professor.moderator) {
@@ -46,35 +39,11 @@ router.post("/login", async (req, res) => {
         role = "professor";
       }
     } else if (password !== student.password) {
-      console.log("5");
       return res.status(401).json({ message: "Wrong Password!" });
     } else {
       role = "student";
     }
 
-    // (await bcrypt.compare(password, professor.password)) (await bcrypt.compare(password, student.password))
-
-    // bcrypt.genSalt(10, (err, salt) => {
-    //   if (err) {
-    //     console.error("Error generating salt:", err);
-    //     return;
-    //   }
-
-    //   // Hash the value with the generated salt (asynchronous)
-    //   bcrypt.hash(password, salt, (err, hash) => {
-    //     if (err) {
-    //       console.error("Error hashing value:", err);
-    //       return;
-    //     }
-
-    //     // The 'hash' variable now contains the hashed value
-    //     console.log("Hashed Value:", hash);
-
-    //     // You can store or use the 'hash' variable as needed
-    //   });
-    // });
-
-    // (
     const accessToken = jwt.sign(
       { regID: regID, role: role },
       process.env.JWT_SECRET

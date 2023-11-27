@@ -25,6 +25,6 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 
-const userRoutes = require("./students");
+const loginRoutes = require("./loginRouter");
 
-app.use(userRoutes);
+app.use(loginRoutes);
