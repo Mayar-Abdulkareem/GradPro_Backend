@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const { Student } = require("./loginRouter");
+const tokenVerification = require("./tokenVerification");
 
 const courseSchema = new mongoose.Schema({
   courseID: String,
@@ -11,7 +12,7 @@ const courseSchema = new mongoose.Schema({
 
 const Course = mongoose.model("Course", courseSchema);
 
-router.get("/registeredCourses/:regID", async (req, res) => {
+router.get("/registeredCourses/:regID", tokenVerification, async (req, res) => {
   const regID = req.params.regID;
   try {
     const student = await Student.findOne({ regID });
@@ -47,7 +48,7 @@ router.get("/registeredCourses/:regID", async (req, res) => {
   }
 });
 
-router.get("/finishedCourses/:regID", async (req, res) => {
+router.get("/finishedCourses/:regID", tokenVerification, async (req, res) => {
   const regID = req.params.regID;
   try {
     const student = await Student.findOne({ regID });

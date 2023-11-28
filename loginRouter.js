@@ -47,7 +47,8 @@ router.post("/login", async (req, res) => {
 
     const accessToken = jwt.sign(
       { regID: regID, role: role },
-      process.env.JWT_SECRET
+      process.env.JWT_SECRET,
+      { expiresIn: 40 }
     );
 
     res.json({ accessToken, role: role });
