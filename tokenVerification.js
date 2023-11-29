@@ -7,8 +7,6 @@ function authenticateMiddleware(req, res, next) {
 
   jwt.verify(token, secretKey, (err, decoded) => {
     if (err) {
-      console.log(err);
-      console.log("not valid");
       return res.json("login");
     }
     console.log("valid");
