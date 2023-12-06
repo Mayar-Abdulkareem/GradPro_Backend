@@ -5,9 +5,6 @@ const cors = require("cors");
 
 const app = express();
 const port = 3001;
-
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
 app.use(cors());
 
 mongoose.connect("mongodb://127.0.0.1:27017/GradPro", {
@@ -34,3 +31,5 @@ app.use(loginRoutes);
 app.use(coursesRoutes);
 app.use(storeRoutes);
 app.use(previousProjectsRoutes);
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
