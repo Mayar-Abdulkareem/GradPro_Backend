@@ -21,6 +21,7 @@ const Professor = mongoose.model("Professor", professorSchema);
 
 router.post("/login", async (req, res) => {
   const { regID, password } = req.body;
+  console.log(regID, password);
   try {
     const student = await Student.findOne({ regID });
     let role;

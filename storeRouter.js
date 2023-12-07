@@ -7,6 +7,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 const storeSchema = new mongoose.Schema({
+  regID: String,
   title: String,
   price: String,
   contact: String,
@@ -31,17 +32,13 @@ router.get("/store", async (req, res) => {
         data: item.image.data.toString("base64"),
       };
       resultArr.push({
+        regID: item.regID,
         title: item.title,
         price: item.price,
         contact: item.contact,
         image: imageData,
       });
     });
-
-    // Send structured response with string and image data
-    // res.json(resultArr);
-
-    console.log(resultArr);
 
     if (!store) {
       res.status(404).json("No Elements in the store");
@@ -58,6 +55,7 @@ router.post("/store/addItem", upload.single("image"), async (req, res) => {
   try {
     console.log("req.file:", req.file);
     const storeItem = new Store({
+      regID: req.body.regID,
       title: req.body.title,
       price: req.body.price,
       contact: req.body.contact,

@@ -18,6 +18,9 @@ db.once("open", () => {
   console.log("Connected to MongoDB");
 });
 
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded());
+
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
@@ -31,5 +34,3 @@ app.use(loginRoutes);
 app.use(coursesRoutes);
 app.use(storeRoutes);
 app.use(previousProjectsRoutes);
-app.use(bodyParser.json({ limit: "50mb" }));
-app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
