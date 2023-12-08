@@ -32,6 +32,7 @@ router.get("/store", async (req, res) => {
         data: item.image.data.toString("base64"),
       };
       resultArr.push({
+        id: item._id,
         regID: item.regID,
         title: item.title,
         price: item.price,
@@ -76,6 +77,23 @@ router.post("/store/addItem", upload.single("image"), async (req, res) => {
     res
       .status(500)
       .json({ message: "Error during Inserting The Item to the Store" });
+  }
+});
+
+router.delete("/store/:storeItemID", async (req, res) => {
+  try {
+    let storeItemID = req.params.storeItemID;
+    let objectID = mongoose.Types.ObjectId;
+    let newID = new objectID(storeItemID);
+
+    const store = await Store.findByIdAndDelete(newID);
+    if (!store) {
+      return res.status(404).json("Store Item Not Found");
+    }
+    res.json("Item deleted successfully");
+  } catch (error) {
+    console.log(error);
+    res.status(500).json("Unable to delete the item");
   }
 });
 
