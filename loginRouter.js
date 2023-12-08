@@ -14,6 +14,8 @@ const professorSchema = new mongoose.Schema({
   regID: String,
   password: String,
   moderator: Boolean,
+  name: String,
+  availableThisSemester: Boolean,
 });
 
 const Student = mongoose.model("Student", studentSchema);
@@ -61,3 +63,4 @@ router.post("/login", async (req, res) => {
 
 exports.loginRoutes = router;
 exports.Student = Student;
+exports.Professor = Professor;

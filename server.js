@@ -29,8 +29,12 @@ const { loginRoutes } = require("./loginRouter");
 const coursesRoutes = require("./coursesRouter");
 const storeRoutes = require("./storeRouter");
 const previousProjectsRoutes = require("./previousProjectsRouter");
+const professorsRoutes = require("./professorsRouter");
+const requestsRoutes = require("./requestsRouter");
 
 app.use(loginRoutes);
 app.use(coursesRoutes);
 app.use(storeRoutes);
 app.use(previousProjectsRoutes);
+app.use(professorsRoutes);
+app.use(requestsRoutes);
