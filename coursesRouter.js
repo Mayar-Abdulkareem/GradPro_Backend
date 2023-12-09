@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const { Student } = require("./loginRouter");
+const { Student, Professor } = require("./loginRouter");
 const tokenVerification = require("./tokenVerification");
 
 const courseSchema = new mongoose.Schema({
@@ -20,27 +20,33 @@ router.get("/registeredCourses/:regID", async (req, res) => {
     if (!student) {
       res.status(404).json("No Student Found with this registeration number");
     } else {
-      let registeredCourses = {};
+      let registeredCourses = [];
 
-      Object.keys(student.courses).forEach((key) => {
-        if (student.courses[key].status === "registered") {
-          registeredCourses[key] = {
-            supervisor: student.courses[key].supervisor,
-          };
+      student.courses.forEach((course) => {
+        if (course.status === "registered") {
+          registeredCourses.push({
+            courseID: course.courseID,
+            supervisorID: course.supervisorID,
+          });
         }
       });
 
-      let resultObj = {};
-
       await Promise.all(
-        Object.keys(registeredCourses).map(async (key) => {
-          const course = await Course.findOne({ courseID: key });
-          return (resultObj[course.courseName] = {
-            supervisor: registeredCourses[key].supervisor,
+        registeredCourses.map(async (registeredCourse, index) => {
+          const course = await Course.findOne({
+            courseID: registeredCourse.courseID,
+          });
+          const professor = await Professor.findOne({
+            regID: registeredCourse.supervisorID,
+          });
+          return (registeredCourses[index] = {
+            ...registeredCourse,
+            courseName: course.courseName,
+            supervisorName: professor.name,
           });
         })
       );
-      res.json(resultObj);
+      res.json(registeredCourses);
     }
   } catch (error) {
     console.error("Error during login:", error);
@@ -58,9 +64,9 @@ router.get("/finishedCourses/:regID", async (req, res) => {
     } else {
       let finishedCourses = [];
 
-      Object.keys(student.courses).forEach((key) => {
-        if (student.courses[key].status === "finished") {
-          finishedCourses.push(key);
+      student.courses.forEach((c) => {
+        if (c.status === "finished") {
+          finishedCourses.push(c);
         }
       });
 

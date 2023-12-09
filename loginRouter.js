@@ -7,7 +7,7 @@ require("dotenv").config();
 const studentSchema = new mongoose.Schema({
   regID: String,
   password: String,
-  courses: Object,
+  courses: Array,
 });
 
 const professorSchema = new mongoose.Schema({
