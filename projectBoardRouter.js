@@ -149,13 +149,14 @@ router.post(
   }
 );
 
-router.post("/boards/addColumn/:collaboratorID/:courseID", async (req, res) => {
+router.post("/boards/addColumn", async (req, res) => {
   try {
-    const collaboratorID = req.params.collaboratorID;
-    const courseID = req.params.courseID;
+    const collaborators = req.body.collaborators;
+    const courseID = req.body.courseID;
+    // const courseID = req.params.courseID;
     const result = await Board.updateOne(
       {
-        collaborators: [collaboratorID],
+        collaborators: collaborators,
         courseID: courseID,
       },
       {
