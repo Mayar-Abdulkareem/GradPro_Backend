@@ -4,7 +4,9 @@ const mongoose = require("mongoose");
 
 const boardSchema = new mongoose.Schema({
   collaborators: Array,
+  courseID: String,
   columns: Array,
+  tasks: Array,
 });
 
 const Board = mongoose.model("Board", boardSchema);
@@ -29,41 +31,31 @@ router.get("/boards/:courseID/:collaboratorID", async (req, res) => {
 });
 
 router.delete(
-  "/boards/task/:collaboratorID/:courseID/:columnID/:taskID",
+  "/boards/task/:collaboratorID/:courseID/:taskID",
   async (req, res) => {
     try {
       const collaboratorID = req.params.collaboratorID;
       const courseID = req.params.courseID;
       const taskID = req.params.taskID.toString();
-      const columnID = req.params.columnID.toString();
       const board = await Board.findOne({
         collaborators: collaboratorID,
         courseID: courseID,
       });
       if (board) {
-        const column = board.columns.find((col) => col.columnID === columnID);
-        if (column) {
-          const taskIndex = column.tasks.findIndex(
-            (task) => task.id === taskID
+        const taskIndex = board.tasks.findIndex((task) => task.id === taskID);
+        if (taskIndex !== -1) {
+          board.tasks.splice(taskIndex, 1);
+          const response = await Board.findByIdAndUpdate(
+            board._id,
+            { tasks: board.tasks },
+            {
+              new: true,
+              runValidators: true,
+            }
           );
-          if (taskIndex !== -1) {
-            column.tasks.splice(taskIndex, 1);
-            const response = await Board.findByIdAndUpdate(
-              board._id,
-              { columns: board.columns },
-              {
-                new: true,
-                runValidators: true,
-              }
-            );
-            return res.json(response);
-          } else {
-            return res
-              .status(404)
-              .json("Task not found in the specified column");
-          }
+          return res.json(response);
         } else {
-          return res.status(404).json("Column not found");
+          return res.status(404).json("Task not found");
         }
       } else {
         return res.status(404).json("Board not found");
@@ -88,14 +80,17 @@ router.delete(
       });
       if (board) {
         const columnIndex = board.columns.findIndex(
-          (column) => column.columnID === columnID
+          (column) => column.id === columnID
         );
 
         if (columnIndex !== -1) {
           board.columns.splice(columnIndex, 1);
+          board.tasks = board.tasks.filter((task) => {
+            return task.columnId != columnID;
+          });
           const response = await Board.findByIdAndUpdate(
             board._id,
-            { columns: board.columns },
+            { columns: board.columns, tasks: board.tasks },
             {
               new: true,
               runValidators: true,
@@ -124,18 +119,16 @@ router.post(
       const collaboratorID = req.params.collaboratorID;
       const courseID = req.params.courseID;
       const columnID = req.params.columnID;
-      console.log(req.body.id);
-      console.log(req.body.content);
       const result = await Board.updateOne(
         {
           collaborators: collaboratorID,
           courseID: courseID,
-          "columns.columnID": columnID,
         },
         {
           $push: {
-            "columns.$.tasks": {
+            tasks: {
               id: req.body.id.toString(),
+              columnId: columnID,
               content: req.body.content,
             },
           },
@@ -162,18 +155,18 @@ router.post("/boards/addColumn/:collaboratorID/:courseID", async (req, res) => {
     const courseID = req.params.courseID;
     const result = await Board.updateOne(
       {
-        collaborators: collaboratorID,
+        collaborators: [collaboratorID],
         courseID: courseID,
       },
       {
-        $push: {
+        $addToSet: {
           columns: {
-            columnID: req.body.id.toString(),
-            columnName: req.body.content,
-            tasks: [],
+            id: req.body.id.toString(),
+            title: req.body.content,
           },
         },
-      }
+      },
+      { upsert: true, new: true }
     );
 
     if (!result) {
@@ -188,44 +181,33 @@ router.post("/boards/addColumn/:collaboratorID/:courseID", async (req, res) => {
 });
 
 router.put(
-  "/boards/editTask/:collaboratorID/:courseID/:columnID/:taskID",
+  "/boards/editTask/:collaboratorID/:courseID/:taskID",
   async (req, res) => {
     try {
       const collaboratorID = req.params.collaboratorID;
       const courseID = req.params.courseID;
       const taskID = req.params.taskID;
-      const columnID = req.params.columnID;
 
       const board = await Board.findOne({
         collaborators: collaboratorID,
         courseID: courseID,
-        "columns.columnID": columnID,
-        "columns.tasks.id": taskID,
+        "tasks.id": taskID,
       });
       if (board) {
-        const column = board.columns.find((col) => col.columnID === columnID);
-        if (column) {
-          const taskIndex = column.tasks.findIndex(
-            (task) => task.id === taskID
+        const taskIndex = board.tasks.findIndex((task) => task.id === taskID);
+        if (taskIndex !== -1) {
+          board.tasks[taskIndex].content = req.body.content;
+          const response = await Board.findByIdAndUpdate(
+            board._id,
+            { tasks: board.tasks },
+            {
+              new: true,
+              runValidators: true,
+            }
           );
-          if (taskIndex !== -1) {
-            column.tasks[taskIndex].content = req.body.content;
-            const response = await Board.findByIdAndUpdate(
-              board._id,
-              { columns: board.columns },
-              {
-                new: true,
-                runValidators: true,
-              }
-            );
-            return res.json(response);
-          } else {
-            return res
-              .status(404)
-              .json("Task not found in the specified column");
-          }
+          return res.json(response);
         } else {
-          return res.status(404).json("Column not found");
+          return res.status(404).json("Task not found in the specified column");
         }
       } else {
         return res.status(404).json("Board not found");
@@ -238,7 +220,7 @@ router.put(
 );
 
 router.put(
-  "/boards/editTask/:collaboratorID/:courseID/:columnID",
+  "/boards/editColumnTitle/:collaboratorID/:courseID/:columnID",
   async (req, res) => {
     try {
       const collaboratorID = req.params.collaboratorID;
@@ -248,15 +230,15 @@ router.put(
       const board = await Board.findOne({
         collaborators: collaboratorID,
         courseID: courseID,
-        "columns.columnID": columnID,
+        "columns.id": columnID,
       });
       if (board) {
         const columnIndex = board.columns.findIndex(
-          (column) => column.columnID === columnID
+          (column) => column.id === columnID
         );
 
         if (columnIndex !== -1) {
-          board.columns[columnIndex].columnName = req.body.title;
+          board.columns[columnIndex].title = req.body.title;
           const response = await Board.findByIdAndUpdate(
             board._id,
             { columns: board.columns },
@@ -271,6 +253,37 @@ router.put(
             .status(404)
             .json("Column not found in the specified board");
         }
+      } else {
+        return res.status(404).json("Board not found");
+      }
+    } catch (error) {
+      console.error("Error during fetching store items:", error);
+      res.status(500).json("Error during fetching store items");
+    }
+  }
+);
+
+router.put(
+  "/boards/editBoarderOrder/:collaboratorID/:courseID",
+  async (req, res) => {
+    try {
+      const collaboratorID = req.params.collaboratorID;
+      const courseID = req.params.courseID;
+
+      const board = await Board.findOne({
+        collaborators: collaboratorID,
+        courseID: courseID,
+      });
+      if (board) {
+        const response = await Board.findByIdAndUpdate(
+          board._id,
+          { columns: req.body.columns, tasks: req.body.tasks },
+          {
+            new: true,
+            runValidators: true,
+          }
+        );
+        return res.json(response);
       } else {
         return res.status(404).json("Board not found");
       }
