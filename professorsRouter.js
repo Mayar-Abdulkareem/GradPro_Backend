@@ -2,9 +2,10 @@ const express = require("express");
 const router = express.Router();
 const { Professor } = require("./loginRouter");
 
-router.get("/professors", async (req, res) => {
+router.get("/professors/:courseID", async (req, res) => {
   try {
-    const professors = await Professor.find({ availableThisSemester: true });
+    const courseID = req.params.courseID;
+    const professors = await Professor.find({ courses: courseID });
 
     if (!professors) {
       res.status(404).json("No Professors Found");

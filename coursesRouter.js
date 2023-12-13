@@ -99,4 +99,35 @@ router.get("/courses", async (req, res) => {
   }
 });
 
+router.get("/supervisorCourses/:regID", async (req, res) => {
+  const regID = req.params.regID;
+  try {
+    const professor = await Professor.findOne({ regID });
+    if (!professor) {
+      res.status(404).json("No professor Found with this registeration number");
+    } else {
+      let courses = professor.courses.map((course) => {
+        return course;
+      });
+      await Promise.all(
+        courses.map(async (c, index) => {
+          const course = await Course.findOne({
+            courseID: c,
+          });
+          return (courses[index] = {
+            courseID: course.courseID,
+            courseName: course.courseName,
+          });
+        })
+      );
+      res.json(courses);
+    }
+  } catch (error) {
+    console.error("Error during fetching professors courses:", error);
+    res
+      .status(500)
+      .json({ message: "Error during fetching professors courses" });
+  }
+});
+
 module.exports = router;
