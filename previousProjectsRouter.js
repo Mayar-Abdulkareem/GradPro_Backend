@@ -10,6 +10,7 @@ const previousProjectSchema = new mongoose.Schema({
   students: String,
   supervisor: String,
   description: String,
+  link: String,
 });
 
 const PreviousProject = mongoose.model(
