@@ -10,6 +10,11 @@ const studentSchema = new mongoose.Schema({
   courses: Array,
 });
 
+const adminSchema = new mongoose.Schema({
+  ID: String,
+  password: String,
+});
+
 const professorSchema = new mongoose.Schema({
   regID: String,
   password: String,
@@ -21,6 +26,7 @@ const professorSchema = new mongoose.Schema({
 
 const Student = mongoose.model("Student", studentSchema);
 const Professor = mongoose.model("Professor", professorSchema);
+const Admin = mongoose.model("Admin", adminSchema);
 
 router.post("/login", async (req, res) => {
   const { regID, password } = req.body;
@@ -32,16 +38,25 @@ router.post("/login", async (req, res) => {
       const professor = await Professor.findOne({ regID });
 
       if (!professor) {
-        return res
-          .status(401)
-          .json({ message: "Invalid registeration Number" });
+        const admin = await Admin.findOne({ ID: regID });
+
+        if (!admin) {
+          return res
+            .status(401)
+            .json({ message: "Invalid registeration Number" });
+        } else if (password !== admin.password) {
+          return res.status(401).json({ message: "Wrong Password!" });
+        } else {
+          role = "admin";
+        }
       } else if (password !== professor.password) {
         return res.status(401).json({ message: "Wrong Password!" });
-      }
-      if (professor.moderator) {
-        role = "moderator";
       } else {
-        role = "supervisor";
+        if (professor.moderator) {
+          role = "moderator";
+        } else {
+          role = "supervisor";
+        }
       }
     } else if (password !== student.password) {
       return res.status(401).json({ message: "Wrong Password!" });
