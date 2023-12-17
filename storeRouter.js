@@ -19,14 +19,42 @@ const storeSchema = new mongoose.Schema({
 
 const Store = mongoose.model("Store", storeSchema, "store");
 
-router.get("/store", async (req, res) => {
+const PAGE_SIZE = 8;
+
+router.post("/store", async (req, res) => {
   try {
-    const store = await Store.find({});
-    // console.log(store.image);
+    const page = parseInt(req.body.page) || 1;
+    const skip = (page - 1) * PAGE_SIZE;
+
+    const filter = {};
+
+    // Add filters based on request body
+    if (req.body.title) {
+      filter.title = { $regex: new RegExp(req.body.title, "i") }; // Case-insensitive regex match
+    }
+
+    if (req.body.regID.length > 0) {
+      filter.regID = req.body.regID;
+    }
+
+    const sort = {};
+
+    // Add sorting based on request body
+    if (req.body.sortByPrice) {
+      sort.price = req.body.sortByPrice === "asc" ? 1 : -1; // 1 for ascending, -1 for descending
+    }
+
+    const [storeItems, totalCount] = await Promise.all([
+      Store.find(filter)
+        .collation({ locale: "en_US", numericOrdering: true })
+        .sort(sort)
+        .skip(skip)
+        .limit(PAGE_SIZE),
+      Store.countDocuments(filter),
+    ]);
 
     const resultArr = [];
-
-    store.forEach((item) => {
+    storeItems.forEach((item) => {
       const imageData = {
         contentType: item.image.contentType,
         data: item.image.data.toString("base64"),
@@ -41,14 +69,26 @@ router.get("/store", async (req, res) => {
       });
     });
 
-    if (!store) {
-      res.status(404).json("No Elements in the store");
+    if (!storeItems || storeItems.length === 0) {
+      res.json({
+        totalCount: 0,
+        currentPage: page,
+        pageSize: PAGE_SIZE,
+        storeItems: [], // Return an empty array
+      });
     } else {
-      res.json(resultArr);
+      res.json({
+        totalCount: totalCount,
+        currentPage: page,
+        pageSize: PAGE_SIZE,
+        storeItems: resultArr,
+      });
     }
   } catch (error) {
-    console.error("Error during fetching store items:", error);
-    res.status(500).json({ message: "Error during fetching store items" });
+    console.error("Error during fetching previous projects:", error);
+    res
+      .status(500)
+      .json({ message: "Error during fetching previous projects" });
   }
 });
 
