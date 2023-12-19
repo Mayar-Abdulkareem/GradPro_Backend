@@ -54,15 +54,11 @@ router.post("/previousProjects", async (req, res) => {
     if (!previousProjects || previousProjects.length === 0) {
       res.json({
         totalCount: 0,
-        currentPage: page,
-        pageSize: PAGE_SIZE,
         previousProjects: [], // Return an empty array
       });
     } else {
       res.json({
         totalCount: totalCount,
-        currentPage: page,
-        pageSize: PAGE_SIZE,
         previousProjects: previousProjects,
       });
     }

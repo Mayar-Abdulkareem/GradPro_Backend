@@ -14,6 +14,7 @@ const Course = mongoose.model("Course", courseSchema);
 
 router.get("/registeredCourses/:regID", async (req, res) => {
   const regID = req.params.regID;
+  console.log(regID);
   try {
     const student = await Student.findOne({ regID });
 
