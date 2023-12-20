@@ -19,7 +19,7 @@ const storeSchema = new mongoose.Schema({
 
 const Store = mongoose.model("Store", storeSchema, "store");
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 6;
 
 router.post("/store", async (req, res) => {
   try {
