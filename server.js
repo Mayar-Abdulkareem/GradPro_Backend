@@ -32,6 +32,7 @@ const previousProjectsRoutes = require("./previousProjectsRouter");
 const professorsRoutes = require("./professorsRouter");
 const requestsRoutes = require("./requestsRouter");
 const projectBoardRoutes = require("./projectBoardRouter");
+const tagsRoutes = require("./tagsRouter");
 
 app.use(loginRoutes);
 app.use(coursesRoutes);
@@ -40,3 +41,4 @@ app.use(previousProjectsRoutes);
 app.use(professorsRoutes);
 app.use(requestsRoutes);
 app.use(projectBoardRoutes);
+app.use(tagsRoutes);
