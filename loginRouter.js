@@ -8,7 +8,7 @@ const studentSchema = new mongoose.Schema({
   regID: String,
   password: String,
   courses: Array,
-  skillsVector: Array,
+  skillsVector: String,
 });
 
 const adminSchema = new mongoose.Schema({
