@@ -19,12 +19,14 @@ const PreviousProject = mongoose.model(
 
 const PAGE_SIZE = 8;
 
-router.get('/previousProjects/projectTypes', async (req, res) => {
+router.get("/previousProjects/projectTypes", async (req, res) => {
   try {
-    const projectTypes = await PreviousProject.distinct('projectType');
+    const projectTypes = await PreviousProject.distinct("projectType");
     res.json(projectTypes);
   } catch (error) {
-    res.status(500).json({ message: "Error retrieving project types", error: error });
+    res
+      .status(500)
+      .json({ message: "Error retrieving project types", error: error });
   }
 });
 
