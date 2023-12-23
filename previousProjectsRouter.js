@@ -19,6 +19,15 @@ const PreviousProject = mongoose.model(
 
 const PAGE_SIZE = 8;
 
+router.get('/previousProjects/projectTypes', async (req, res) => {
+  try {
+    const projectTypes = await PreviousProject.distinct('projectType');
+    res.json(projectTypes);
+  } catch (error) {
+    res.status(500).json({ message: "Error retrieving project types", error: error });
+  }
+});
+
 router.post("/previousProjects", async (req, res) => {
   try {
     const page = parseInt(req.body.page) || 1;
