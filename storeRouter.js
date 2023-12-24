@@ -33,7 +33,7 @@ router.post("/store", async (req, res) => {
       filter.title = { $regex: new RegExp(req.body.title, "i") }; // Case-insensitive regex match
     }
 
-    if (req.body.regID.length > 0) {
+    if (req.body.regID) {
       filter.regID = req.body.regID;
     }
 
