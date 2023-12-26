@@ -9,6 +9,8 @@ const studentSchema = new mongoose.Schema({
   password: String,
   courses: Array,
   skillsVector: String,
+  peerID: String,
+  supervisorID: String,
 });
 
 const adminSchema = new mongoose.Schema({
@@ -53,11 +55,11 @@ router.post("/login", async (req, res) => {
       } else if (password !== professor.password) {
         return res.status(401).json({ message: "Wrong Password!" });
       } else {
-        if (professor.moderator) {
-          role = "moderator";
-        } else {
-          role = "supervisor";
-        }
+        // if (professor.moderator) {
+        //   role = "moderator";
+        // } else {
+        role = "supervisor";
+        // }
       }
     } else if (password !== student.password) {
       return res.status(401).json({ message: "Wrong Password!" });

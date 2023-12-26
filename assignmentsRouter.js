@@ -5,6 +5,7 @@ const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const { ObjectId } = require("mongodb");
+const { Student } = require("./loginRouter");
 
 const assignmentSchema = new mongoose.Schema({
   title: String,
@@ -25,6 +26,7 @@ const submissionSchema = new mongoose.Schema({
     content: Buffer,
   },
   text: String,
+  supervisorComment: String,
 });
 
 const Assignment = mongoose.model("Assignment", assignmentSchema);
@@ -57,6 +59,32 @@ router.get("/assignments/:assignmentID", async (req, res) => {
       .json({ message: "Error during fetching previous projects" });
   }
 });
+// this is to get the submissions for the supervisors students for a certain assignment , supervisorID and courseID are sent in the body
+router.post("/submissions/getSupervisorSubmissions", async (req, res) => {
+  try {
+    const assignmentID = req.body.assignmentID;
+    const supervisorID = req.body.supervisorID;
+    const students = await Student.find({ supervisorID });
+    const studentIDsArray = students.map((s) => {
+      return s.regID;
+    });
+    const peerIDsArray = students.map((s) => {
+      return s.peerID;
+    });
+    // console.log(studentIDsArray);
+    // console.log(peerIDsArray);
+    const submissions = await Submission.find({
+      studentID: { $in: studentIDsArray },
+      assignmentID,
+    });
+    return res.json({ submissions, peerIDsArray });
+  } catch (error) {
+    console.error("Error during fetching submissions:", error);
+    res.status(500).json({ message: "Error during fetching submissions" });
+  }
+});
+
+// this api is used to add and edit the student submission also used to add the supervisor comment in the supervisor page
 
 router.post(
   "/submissions/addSubmission",
@@ -67,32 +95,22 @@ router.post(
       const studentID = req.body.studentID;
       const courseID = req.body.courseID;
       const text = req.body.text;
-      console.log(req.file);
-      console.log(req.body);
+      const comment = req.body.comment;
       const newData = {
         studentID,
         assignmentID,
         courseID,
-        // file: {
-        //   fileName:
-        //     (req.file && req.file.originalname) || req.body.file.fileName,
-        //   content:
-        //     (req.file && req.file.buffer) ||
-        //     Buffer.from(req.body.file.content, "base64"),
-        // },
         file: {
           fileName: (req.file && req.file.originalname) || "",
           content: (req.file && req.file.buffer) || "",
         },
         text,
+        supervisorComment: comment || "",
       };
 
-      //   atob(req.body.file.content)
-      console.log(newData.file);
+      console.log(newData);
       const options = {
-        // Set the upsert option to true
         upsert: true,
-        // Return the updated document after the update or insert operation
         new: true,
       };
 
@@ -103,15 +121,13 @@ router.post(
       );
       return res.json(submission);
     } catch (error) {
-      console.error("Error during fetching previous projects:", error);
-      res
-        .status(500)
-        .json({ message: "Error during fetching previous projects" });
+      console.error("Error during fetching submissions:", error);
+      res.status(500).json({ message: "Error during fetching submissions" });
     }
   }
 );
 
-router.post("/submissions/getSubmission", async (req, res) => {
+router.post("/submissions/getSubmissionDetails", async (req, res) => {
   try {
     const studentID = req.body.studentID;
     const courseID = req.body.courseID;
@@ -122,17 +138,9 @@ router.post("/submissions/getSubmission", async (req, res) => {
       courseID,
       assignmentID,
     });
-    // console.log(result);
 
     if (!result || result.length === 0) {
-      res.json({
-        // id: 0,
-        // text: "",
-        // file: {
-        //   fileName: "",
-        //   content: "",
-        // },
-      });
+      res.json({});
     } else {
       res.json({
         id: result._id,
@@ -141,6 +149,7 @@ router.post("/submissions/getSubmission", async (req, res) => {
           fileName: result.file.fileName || "",
           content: result.file.content.toString("base64") || "",
         },
+        supervisorComment: result.supervisorComment,
       });
     }
   } catch (error) {
