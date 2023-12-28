@@ -11,6 +11,9 @@ const studentSchema = new mongoose.Schema({
   skillsVector: String,
   peerID: String,
   supervisorID: String,
+  email: String,
+  name: String,
+  phoneNumber: String
 });
 
 const adminSchema = new mongoose.Schema({

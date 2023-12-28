@@ -1,20 +1,23 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
+const { Student } = require("./loginRouter");
 const tokenVerification = require("./tokenVerification");
 const multer = require("multer");
-const storage = multer.memoryStorage();
+const storage = multer.memoryStorage(); 
 const upload = multer({ storage: storage });
 
 const storeSchema = new mongoose.Schema({
   regID: String,
   title: String,
   price: String,
-  contact: String,
   image: {
     data: Buffer,
     contentType: String,
   },
+  location: String,
+  quantity: String,
+  showPhoneNumber: Boolean
 });
 
 const Store = mongoose.model("Store", storeSchema, "store");
@@ -44,6 +47,7 @@ router.post("/store", async (req, res) => {
       sort.price = req.body.sortByPrice === "asc" ? 1 : -1; // 1 for ascending, -1 for descending
     }
 
+    // Fetch store items and total count
     const [storeItems, totalCount] = await Promise.all([
       Store.find(filter)
         .collation({ locale: "en_US", numericOrdering: true })
@@ -53,70 +57,80 @@ router.post("/store", async (req, res) => {
       Store.countDocuments(filter),
     ]);
 
-    const resultArr = [];
-    storeItems.forEach((item) => {
+    // Collect all unique regIDs from the storeItems
+    const uniqueRegIDs = [...new Set(storeItems.map(item => item.regID))];
+
+    // Fetch student details for the collected regIDs
+    const students = await Student.find({ regID: { $in: uniqueRegIDs }});
+
+    // Map students by regID for quick access
+    const studentMap = {};
+    students.forEach(student => {
+      studentMap[student.regID] = { name: student.name, email: student.email, phoneNumber: student.phoneNumber};
+    });
+
+    // Construct result array with store items and corresponding student details
+    const resultArr = storeItems.map(item => {
+      const studentDetails = studentMap[item.regID] || {};
       const imageData = {
         contentType: item.image.contentType,
         data: item.image.data.toString("base64"),
       };
-      resultArr.push({
+      return {
         id: item._id,
         regID: item.regID,
         title: item.title,
         price: item.price,
-        contact: item.contact,
+        quantity: item.quantity,
+        location: item.location,
         image: imageData,
-      });
+        name: studentDetails.name, 
+        email: studentDetails.email, 
+        phoneNumber: studentDetails.phoneNumber,
+        showPhoneNumber: item.showPhoneNumber
+      };
     });
 
-    if (!storeItems || storeItems.length === 0) {
-      res.json({
-        totalCount: 0,
-        currentPage: page,
-        pageSize: PAGE_SIZE,
-        storeItems: [], // Return an empty array
-      });
-    } else {
-      res.json({
-        totalCount: totalCount,
-        currentPage: page,
-        pageSize: PAGE_SIZE,
-        storeItems: resultArr,
-      });
-    }
+    // Send response
+    res.json({
+      totalCount: totalCount,
+      storeItems: resultArr,
+    });
+
   } catch (error) {
-    console.error("Error during fetching previous projects:", error);
-    res
-      .status(500)
-      .json({ message: "Error during fetching previous projects" });
+    console.error("Error during fetching store items:", error);
+    res.status(500).json({ message: "Error during fetching store items" });
   }
 });
 
 router.post("/store/addItem", upload.single("image"), async (req, res) => {
   try {
     console.log("req.file:", req.file);
+    
     const storeItem = new Store({
       regID: req.body.regID,
       title: req.body.title,
       price: req.body.price,
       contact: req.body.contact,
+      location: req.body.location,
+      quantity: req.body.quantity,
+      showPhoneNumber: req.body.showPhoneNumber, 
       image: {
-        data: req.file.buffer,
-        contentType: req.file.mimetype,
+        data: req.file ? req.file.buffer : null, 
+        contentType: req.file ? req.file.mimetype : null,
       },
     });
+
     const store = await storeItem.save();
 
     if (!store) {
       res.status(404).json("Failed to Insert The Item to the Store");
     } else {
-      res.json(store);
+      res.json("added successfully"); 
     }
   } catch (error) {
     console.error("Error during Inserting The Item to the Store:", error);
-    res
-      .status(500)
-      .json({ message: "Error during Inserting The Item to the Store" });
+    res.status(500).json({ message: "Error during Inserting The Item to the Store" });
   }
 });
 
@@ -134,6 +148,34 @@ router.delete("/store/:storeItemID", async (req, res) => {
   } catch (error) {
     console.log(error);
     res.status(500).json("Unable to delete the item");
+  }
+});
+
+router.post("/store/update/:storeItemID", upload.single('image'), async (req, res) => {
+  try {
+    let storeItemID = req.params.storeItemID;
+    
+    const update = {};
+
+    ['title', 'price', 'location', 'quantity', 'showPhoneNumber'].forEach(field => {
+      if(req.body[field]) update[field] = req.body[field];
+    });
+    
+    if (req.file) {
+      update.image = {
+        data: req.file.buffer,
+        contentType: req.file.mimetype
+      };
+    }
+
+    const updatedStoreItem = await Store.findByIdAndUpdate(storeItemID, update, { new: true });
+    if (!updatedStoreItem) {
+      return res.status(404).json({ message: "Store Item Not Found" });
+    }
+    res.status(200).json("Item updated successfully");
+  } catch (error) {
+    console.error("Error during updating the store item:", error);
+    res.status(500).json({ message: "Error during updating the store item" });
   }
 });
 
