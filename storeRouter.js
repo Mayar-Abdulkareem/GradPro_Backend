@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const { Student } = require("./loginRouter");
 const tokenVerification = require("./tokenVerification");
 const multer = require("multer");
+const axios = require('axios');
 const storage = multer.memoryStorage(); 
 const upload = multer({ storage: storage });
 
@@ -11,10 +12,11 @@ const storeSchema = new mongoose.Schema({
   regID: String,
   title: String,
   price: String,
-  image: {
-    data: Buffer,
-    contentType: String,
-  },
+  image: String,
+  // image: {
+  //   data: Buffer,
+  //   contentType: String,
+  // },
   location: String,
   quantity: String,
   showPhoneNumber: Boolean
@@ -22,7 +24,7 @@ const storeSchema = new mongoose.Schema({
 
 const Store = mongoose.model("Store", storeSchema, "store");
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 8;
 
 router.post("/store", async (req, res) => {
   try {
@@ -72,10 +74,6 @@ router.post("/store", async (req, res) => {
     // Construct result array with store items and corresponding student details
     const resultArr = storeItems.map(item => {
       const studentDetails = studentMap[item.regID] || {};
-      const imageData = {
-        contentType: item.image.contentType,
-        data: item.image.data.toString("base64"),
-      };
       return {
         id: item._id,
         regID: item.regID,
@@ -83,7 +81,7 @@ router.post("/store", async (req, res) => {
         price: item.price,
         quantity: item.quantity,
         location: item.location,
-        image: imageData,
+        image: item.image,
         name: studentDetails.name, 
         email: studentDetails.email, 
         phoneNumber: studentDetails.phoneNumber,
@@ -105,34 +103,51 @@ router.post("/store", async (req, res) => {
 
 router.post("/store/addItem", upload.single("image"), async (req, res) => {
   try {
-    console.log("req.file:", req.file);
-    
-    const storeItem = new Store({
-      regID: req.body.regID,
-      title: req.body.title,
-      price: req.body.price,
-      contact: req.body.contact,
-      location: req.body.location,
-      quantity: req.body.quantity,
-      showPhoneNumber: req.body.showPhoneNumber, 
-      image: {
-        data: req.file ? req.file.buffer : null, 
-        contentType: req.file ? req.file.mimetype : null,
-      },
-    });
+    // First, upload the image to ImgBB
+    if (req.file) {
+      const imgBBResponse = await axios({
+        method: 'post',
+        url: 'https://api.imgbb.com/1/upload',
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        data: {
+          key: 'b587d0ad1713024b7a6ba6763d9a62b9', 
+          image: req.file.buffer.toString('base64')
+        }
+      });
 
-    const store = await storeItem.save();
+      // Get the URL of the uploaded image
+      const imageUrl = imgBBResponse.data.data.url;
 
-    if (!store) {
-      res.status(404).json("Failed to Insert The Item to the Store");
+      // Now create the store item with the image URL
+      const storeItem = new Store({
+        regID: req.body.regID,
+        title: req.body.title,
+        price: req.body.price,
+        contact: req.body.contact,
+        location: req.body.location,
+        quantity: req.body.quantity,
+        showPhoneNumber: req.body.showPhoneNumber, 
+        image: imageUrl, 
+      });
+
+      const store = await storeItem.save();
+
+      if (!store) {
+        res.status(404).json("Failed to Insert The Item to the Store");
+      } else {
+        res.json("Added successfully");
+      }
     } else {
-      res.json("added successfully"); 
+      res.status(400).json("No image file provided");
     }
   } catch (error) {
     console.error("Error during Inserting The Item to the Store:", error);
     res.status(500).json({ message: "Error during Inserting The Item to the Store" });
   }
 });
+
 
 router.delete("/store/:storeItemID", async (req, res) => {
   try {
@@ -151,21 +166,27 @@ router.delete("/store/:storeItemID", async (req, res) => {
   }
 });
 
+
 router.post("/store/update/:storeItemID", upload.single('image'), async (req, res) => {
   try {
     let storeItemID = req.params.storeItemID;
-    
     const update = {};
 
     ['title', 'price', 'location', 'quantity', 'showPhoneNumber'].forEach(field => {
       if(req.body[field]) update[field] = req.body[field];
     });
-    
+
     if (req.file) {
-      update.image = {
-        data: req.file.buffer,
-        contentType: req.file.mimetype
-      };
+      const imgBBResponse = await axios({
+        method: 'post',
+        url: 'https://api.imgbb.com/1/upload',
+        data: {
+          key: 'b587d0ad1713024b7a6ba6763d9a62b9',
+          image: req.file.buffer.toString('base64')
+        }
+      });
+
+      update.imageUrl = imgBBResponse.data.data.url; // Save the ImgBB image URL instead
     }
 
     const updatedStoreItem = await Store.findByIdAndUpdate(storeItemID, update, { new: true });
@@ -178,5 +199,4 @@ router.post("/store/update/:storeItemID", upload.single('image'), async (req, re
     res.status(500).json({ message: "Error during updating the store item" });
   }
 });
-
 module.exports = router;

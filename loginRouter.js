@@ -9,8 +9,8 @@ const studentSchema = new mongoose.Schema({
   password: String,
   courses: Array,
   skillsVector: String,
-  peerID: String,
-  supervisorID: String,
+  //peerID: String,
+  //supervisorID: String,
   email: String,
   name: String,
   phoneNumber: String
@@ -36,7 +36,6 @@ const Admin = mongoose.model("Admin", adminSchema);
 
 router.post("/login", async (req, res) => {
   const { regID, password } = req.body;
-  console.log(regID, password);
   try {
     const student = await Student.findOne({ regID });
     let role;
