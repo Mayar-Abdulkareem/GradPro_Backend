@@ -26,7 +26,7 @@ app.listen(port, () => {
 });
 
 const { loginRoutes } = require("./loginRouter");
-const coursesRoutes = require("./coursesRouter");
+const { coursesRoutes } = require("./coursesRouter");
 const storeRoutes = require("./storeRouter");
 const previousProjectsRoutes = require("./previousProjectsRouter");
 const professorsRoutes = require("./professorsRouter");

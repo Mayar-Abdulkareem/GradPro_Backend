@@ -8,6 +8,7 @@ const courseSchema = new mongoose.Schema({
   courseID: String,
   courseName: String,
   available: Boolean,
+  professors: Array,
 });
 
 const Course = mongoose.model("Course", courseSchema);
@@ -131,4 +132,5 @@ router.get("/supervisorCourses/:regID", async (req, res) => {
   }
 });
 
-module.exports = router;
+exports.coursesRoutes = router;
+exports.Course = Course;

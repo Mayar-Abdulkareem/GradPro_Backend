@@ -9,11 +9,11 @@ const studentSchema = new mongoose.Schema({
   password: String,
   courses: Array,
   skillsVector: String,
-  //peerID: String,
-  //supervisorID: String,
+  peerID: String,
+  supervisorID: String,
   email: String,
   name: String,
-  phoneNumber: String
+  phoneNumber: String,
 });
 
 const adminSchema = new mongoose.Schema({
@@ -24,10 +24,9 @@ const adminSchema = new mongoose.Schema({
 const professorSchema = new mongoose.Schema({
   regID: String,
   password: String,
-  moderator: Boolean,
+  // email: String,
   name: String,
-  courses: Array,
-  // availableThisSemester: Boolean,
+  students: Array,
 });
 
 const Student = mongoose.model("Student", studentSchema);

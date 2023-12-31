@@ -34,14 +34,17 @@ router.post("/requests", async (req, res) => {
   }
 });
 
-router.get("/requests/student/:studentID/:courseID", async (req, res) => {
+router.post("/requests/student", async (req, res) => {
   try {
-    const studentID = req.params.studentID;
-    const courseID = req.params.courseID;
+    const studentID = req.body.studentID;
+    const courseID = req.body.courseID;
     const request = await Request.find({ senderID: studentID, courseID });
 
+    console.log(studentID, courseID);
+    console.log(request);
+
     if (!request) {
-      res.status(404).json("No Requests");
+      res.json([]);
     } else {
       res.json(request);
     }
