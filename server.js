@@ -35,6 +35,7 @@ const projectBoardRoutes = require("./projectBoardRouter");
 const tagsRoutes = require("./tagsRouter");
 const peerMatchingRoutes = require("./peerMatchingRouter");
 const assignmentsRoutes = require("./assignmentsRouter");
+const profileRoutes = require("./profileRouter");
 
 app.use(loginRoutes);
 app.use(coursesRoutes);
@@ -46,3 +47,4 @@ app.use(projectBoardRoutes);
 app.use(tagsRoutes);
 app.use(peerMatchingRoutes);
 app.use(assignmentsRoutes);
+app.use(profileRoutes);

@@ -14,19 +14,22 @@ const studentSchema = new mongoose.Schema({
   email: String,
   name: String,
   phoneNumber: String,
+  GPA: String,
+  profileImage: String,
 });
 
 const adminSchema = new mongoose.Schema({
   ID: String,
   password: String,
+  profileImage: String,
 });
 
 const professorSchema = new mongoose.Schema({
   regID: String,
   password: String,
-  // email: String,
   name: String,
-  students: Array,
+  courseStudents: Array,
+  profileImage: String,
 });
 
 const Student = mongoose.model("Student", studentSchema);
@@ -84,3 +87,4 @@ router.post("/login", async (req, res) => {
 exports.loginRoutes = router;
 exports.Student = Student;
 exports.Professor = Professor;
+exports.Admin = Admin;
