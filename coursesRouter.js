@@ -55,30 +55,28 @@ router.get("/registeredCourses/:regID", async (req, res) => {
     res.status(500).json({ message: "Error during login" });
   }
 });
+//   const regID = req.params.regID;
+//   try {
+//     const student = await Student.findOne({ regID });
 
-router.get("/finishedCourses/:regID", async (req, res) => {
-  const regID = req.params.regID;
-  try {
-    const student = await Student.findOne({ regID });
+//     if (!student) {
+//       res.status(404).json("No Student Found with this registeration number");
+//     } else {
+//       let finishedCourses = [];
 
-    if (!student) {
-      res.status(404).json("No Student Found with this registeration number");
-    } else {
-      let finishedCourses = [];
+//       student.courses.forEach((c) => {
+//         if (c.status === "finished") {
+//           finishedCourses.push(c);
+//         }
+//       });
 
-      student.courses.forEach((c) => {
-        if (c.status === "finished") {
-          finishedCourses.push(c);
-        }
-      });
-
-      res.json(finishedCourses);
-    }
-  } catch (error) {
-    console.error("Error during login:", error);
-    res.status(500).json({ message: "Error during login" });
-  }
-});
+//       res.json(finishedCourses);
+//     }
+//   } catch (error) {
+//     console.error("Error during login:", error);
+//     res.status(500).json({ message: "Error during login" });
+//   }
+// });
 
 router.get("/courses", async (req, res) => {
   try {
@@ -131,6 +129,29 @@ router.get("/supervisorCourses/:regID", async (req, res) => {
       .json({ message: "Error during fetching professors courses" });
   }
 });
+
+router.get("/availableCourses/:regID", async (req, res) => {
+  const regID = req.params.regID;
+  try {
+    const student = await Student.findOne({ regID });
+
+    if (!student) {
+      return res.status(404).json("No Student Found with this registration number");
+    } else {
+      const allCourses = await Course.find({ available: true });
+
+      let availableCourses = allCourses.filter(course => 
+        !student.courses.some(studentCourse => 
+          studentCourse.courseID === course.courseID && (studentCourse.status === 'registered' || studentCourse.status === 'finished')));
+
+      res.json(availableCourses);
+    }
+  } catch (error) {
+    console.error("Error during operation:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+});
+
 
 exports.coursesRoutes = router;
 exports.Course = Course;

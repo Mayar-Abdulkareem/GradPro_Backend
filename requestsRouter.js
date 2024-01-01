@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 
 const requestSchema = new mongoose.Schema({
   senderID: String,
-  recieverID: String,
+  receiverID: String,
   courseID: String,
   status: String,
   type: String,
@@ -12,21 +12,21 @@ const requestSchema = new mongoose.Schema({
 
 const Request = mongoose.model("Request", requestSchema);
 
-router.post("/requests", async (req, res) => {
+router.post("/request/supervisor", async (req, res) => {
   try {
     const requestItem = new Request({
       senderID: req.body.senderID,
-      recieverID: req.body.recieverID,
+      receiverID: req.body.receiverID,
       courseID: req.body.courseID,
-      status: req.body.status,
-      type: req.body.type,
+      status: "pending",
+      type: "supervisor",
     });
     const request = await requestItem.save();
 
     if (!request) {
       res.status(404).json("Failed to send the request");
     } else {
-      res.json(request);
+      res.json("Successfully sent");
     }
   } catch (error) {
     console.error("Error during sending request:", error);
@@ -127,12 +127,12 @@ router.delete(
       const request = await Request.findByIdAndDelete(requestItem._id);
       console.log(request);
       if (!request) {
-        return res.status(404).json({ error: "Request not found" });
+        return res.status(404).json("Request not found");
       }
-      res.json(request);
+      res.json("deleted successfully");
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Unable to delete the request" });
+      res.status(500).json("Unable to delete the request" );
     }
   }
 );
