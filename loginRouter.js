@@ -26,7 +26,7 @@ const professorSchema = new mongoose.Schema({
   password: String,
   // email: String,
   name: String,
-  students: Array,
+  courseStudents: Array,
 });
 
 const Student = mongoose.model("Student", studentSchema);
