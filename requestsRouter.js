@@ -37,11 +37,7 @@ router.post("/request/supervisor", async (req, res) => {
 router.post("/requests/student", async (req, res) => {
   try {
     const studentID = req.body.studentID;
-    const courseID = req.body.courseID;
-    const request = await Request.find({ senderID: studentID, courseID });
-
-    console.log(studentID, courseID);
-    console.log(request);
+    const request = await Request.find({ senderID: studentID });
 
     if (!request) {
       res.json([]);
@@ -132,7 +128,7 @@ router.delete(
       res.json("deleted successfully");
     } catch (error) {
       console.error(error);
-      res.status(500).json("Unable to delete the request" );
+      res.status(500).json("Unable to delete the request");
     }
   }
 );

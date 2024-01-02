@@ -14,6 +14,7 @@ const assignmentSchema = new mongoose.Schema({
   file: {
     fileName: String,
     content: Buffer,
+    contentType: String,
   },
 });
 
@@ -24,6 +25,7 @@ const submissionSchema = new mongoose.Schema({
   file: {
     fileName: String,
     content: Buffer,
+    contentType: String,
   },
   text: String,
   supervisorComment: String,
@@ -84,7 +86,7 @@ router.post("/submissions/getSupervisorSubmissions", async (req, res) => {
   }
 });
 
-// this api is used to add and edit the student submission also used to add the supervisor comment in the supervisor page
+// this api is used to add and edit the student submission
 
 router.post(
   "/submissions/addSubmission",
@@ -95,7 +97,6 @@ router.post(
       const studentID = req.body.studentID;
       const courseID = req.body.courseID;
       const text = req.body.text;
-      const comment = req.body.comment;
       const newData = {
         studentID,
         assignmentID,
@@ -103,12 +104,11 @@ router.post(
         file: {
           fileName: (req.file && req.file.originalname) || "",
           content: (req.file && req.file.buffer) || "",
+          contentType: (req.file && req.file.mimetype) || "",
         },
         text,
-        supervisorComment: comment || "",
       };
 
-      console.log(newData);
       const options = {
         upsert: true,
         new: true,
@@ -142,12 +142,14 @@ router.post("/submissions/getSubmissionDetails", async (req, res) => {
     if (!result || result.length === 0) {
       res.json({});
     } else {
+      res.contentType(result.file.contentType);
       res.json({
         id: result._id,
         text: result.text,
         file: {
           fileName: result.file.fileName || "",
           content: result.file.content.toString("base64") || "",
+          contentType: result.file.contentType || "",
         },
         supervisorComment: result.supervisorComment,
       });
@@ -157,6 +159,24 @@ router.post("/submissions/getSubmissionDetails", async (req, res) => {
     res
       .status(500)
       .json({ message: "Error during fetching previous projects" });
+  }
+});
+
+router.put("/submissions/addComment", async (req, res) => {
+  try {
+    const submissionID = req.body.submissionID;
+    const comment = req.body.comment;
+    await Submission.updateOne(
+      { _id: new ObjectId(submissionID) },
+      { $set: { supervisorComment: comment } }
+    );
+
+    res.json("");
+  } catch (error) {
+    console.error("Error during adding a comment to the submission:", error);
+    res
+      .status(500)
+      .json({ message: "Error during adding a comment to the submission" });
   }
 });
 

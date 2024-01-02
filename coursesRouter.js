@@ -13,9 +13,10 @@ const courseSchema = new mongoose.Schema({
 
 const Course = mongoose.model("Course", courseSchema);
 
+// this api is to get the student registered courses
+
 router.get("/registeredCourses/:regID", async (req, res) => {
   const regID = req.params.regID;
-  console.log(regID);
   try {
     const student = await Student.findOne({ regID });
 
@@ -55,28 +56,8 @@ router.get("/registeredCourses/:regID", async (req, res) => {
     res.status(500).json({ message: "Error during login" });
   }
 });
-//   const regID = req.params.regID;
-//   try {
-//     const student = await Student.findOne({ regID });
 
-//     if (!student) {
-//       res.status(404).json("No Student Found with this registeration number");
-//     } else {
-//       let finishedCourses = [];
-
-//       student.courses.forEach((c) => {
-//         if (c.status === "finished") {
-//           finishedCourses.push(c);
-//         }
-//       });
-
-//       res.json(finishedCourses);
-//     }
-//   } catch (error) {
-//     console.error("Error during login:", error);
-//     res.status(500).json({ message: "Error during login" });
-//   }
-// });
+// this api is to get the available courses for this semester
 
 router.get("/courses", async (req, res) => {
   try {
@@ -94,33 +75,33 @@ router.get("/courses", async (req, res) => {
       res.json(courses);
     }
   } catch (error) {
-    console.error("Error during login:", error);
-    res.status(500).json({ message: "Error during login" });
+    console.error("Error during fetching courses:", error);
+    res.status(500).json({ message: "Error during fetching courses" });
   }
 });
+
+//
 
 router.get("/supervisorCourses/:regID", async (req, res) => {
   const regID = req.params.regID;
   try {
-    const professor = await Professor.findOne({ regID });
-    if (!professor) {
+    const courses = await Course.find({
+      professors: {
+        $elemMatch: {
+          id: regID,
+        },
+      },
+    });
+    if (!courses) {
       res.status(404).json("No professor Found with this registeration number");
     } else {
-      let courses = professor.courses.map((course) => {
-        return course;
+      const resultArr = courses.map((course) => {
+        return {
+          courseID: course.courseID,
+          courseName: course.courseName,
+        };
       });
-      await Promise.all(
-        courses.map(async (c, index) => {
-          const course = await Course.findOne({
-            courseID: c,
-          });
-          return (courses[index] = {
-            courseID: course.courseID,
-            courseName: course.courseName,
-          });
-        })
-      );
-      res.json(courses);
+      res.json(resultArr);
     }
   } catch (error) {
     console.error("Error during fetching professors courses:", error);
@@ -130,19 +111,29 @@ router.get("/supervisorCourses/:regID", async (req, res) => {
   }
 });
 
+// this api is to get the courses the user can register
+
 router.get("/availableCourses/:regID", async (req, res) => {
   const regID = req.params.regID;
   try {
     const student = await Student.findOne({ regID });
 
     if (!student) {
-      return res.status(404).json("No Student Found with this registration number");
+      return res
+        .status(404)
+        .json("No Student Found with this registration number");
     } else {
       const allCourses = await Course.find({ available: true });
 
-      let availableCourses = allCourses.filter(course => 
-        !student.courses.some(studentCourse => 
-          studentCourse.courseID === course.courseID && (studentCourse.status === 'registered' || studentCourse.status === 'finished')));
+      let availableCourses = allCourses.filter(
+        (course) =>
+          !student.courses.some(
+            (studentCourse) =>
+              studentCourse.courseID === course.courseID &&
+              (studentCourse.status === "registered" ||
+                studentCourse.status === "finished")
+          )
+      );
 
       res.json(availableCourses);
     }
@@ -151,7 +142,6 @@ router.get("/availableCourses/:regID", async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
 
 exports.coursesRoutes = router;
 exports.Course = Course;
