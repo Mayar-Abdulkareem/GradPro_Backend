@@ -84,6 +84,31 @@ router.post("/login", async (req, res) => {
   }
 });
 
+router.put("/student/updateSkillsVector", async (req, res) => {
+  const { regID, skillsVector } = req.body;
+
+  if (!regID || !skillsVector) {
+    return res.status(400).json("Registration ID and Skills Vector are required.");
+  }
+
+  try {
+    const updatedStudent = await Student.findOneAndUpdate(
+      { regID: regID }, 
+      { $set: { skillsVector: skillsVector } },
+      { new: true } 
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json("Student not found.");
+    }
+
+    res.json("Skills Vector updated successfully.");
+  } catch (error) {
+    console.error("Error during skills vector update:", error);
+    res.status(500).json({ message: "Error during skills vector update" });
+  }
+});
+
 exports.loginRoutes = router;
 exports.Student = Student;
 exports.Professor = Professor;
