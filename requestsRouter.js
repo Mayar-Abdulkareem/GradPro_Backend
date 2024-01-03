@@ -73,39 +73,6 @@ router.post("/requests/student", async (req, res) => {
   }
 });
 
-
-// router.put(
-//   "/requests/registerCourse/:studentID/:courseID",
-//   async (req, res) => {
-//     try {
-//       let studentID = req.body.studentID;
-//       let courseID = req.body.courseID;
-//       let skillsVector = req.body.skillsVector;
-
-//       const requestItem = await Request.findOne({
-//         senderID: studentID,
-//         courseID,
-//       });
-//       const request = await Request.findByIdAndUpdate(
-//         requestItem._id,
-//         { type: "course", status: "pending" },
-//         {
-//           new: true,
-//           runValidators: true,
-//         }
-//       );
-//       console.log(request);
-//       if (!request) {
-//         return res.status(404).json("Request not found");
-//       }
-//       res.json("Successfully registered");
-//     } catch (error) {
-//       console.error(error);
-//       res.status(500).json({ error: "Unable to update the request" });
-//     }
-//   }
-// );
-
 router.put("/requests/registerCourse", async (req, res) => {
   try {
     const { regID, courseID, skillsVector } = req.body;
