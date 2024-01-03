@@ -13,10 +13,6 @@ const storeSchema = new mongoose.Schema({
   title: String,
   price: String,
   image: String,
-  // image: {
-  //   data: Buffer,
-  //   contentType: String,
-  // },
   location: String,
   quantity: String,
   showPhoneNumber: Boolean,
@@ -24,7 +20,7 @@ const storeSchema = new mongoose.Schema({
 
 const Store = mongoose.model("Store", storeSchema, "store");
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 16;
 
 router.post("/store", async (req, res) => {
   try {
@@ -108,6 +104,7 @@ router.post("/store", async (req, res) => {
 router.post("/store/addItem", upload.single("image"), async (req, res) => {
   try {
     // First, upload the image to ImgBB
+    console.log(req.file);
     if (req.file) {
       const imgBBResponse = await axios({
         method: "post",
@@ -176,6 +173,7 @@ router.post(
   upload.single("image"),
   async (req, res) => {
     try {
+      console.log(req.body);
       let storeItemID = req.params.storeItemID;
       const update = {};
 
@@ -184,7 +182,7 @@ router.post(
           if (req.body[field]) update[field] = req.body[field];
         }
       );
-
+      console.log(req.file);
       if (req.file) {
         const imgBBResponse = await axios({
           method: "post",
@@ -197,7 +195,7 @@ router.post(
 
         update.imageUrl = imgBBResponse.data.data.url; // Save the ImgBB image URL instead
       }
-
+      // console.log(update);
       const updatedStoreItem = await Store.findByIdAndUpdate(
         storeItemID,
         update,
