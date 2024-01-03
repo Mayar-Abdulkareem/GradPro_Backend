@@ -10,7 +10,7 @@ const requestSchema = new mongoose.Schema({
   status: String,
   type: String,
   senderName: String,
-  receiverName: String
+  receiverName: String,
 });
 
 const Request = mongoose.model("Request", requestSchema);
@@ -18,7 +18,7 @@ const Request = mongoose.model("Request", requestSchema);
 router.post("/request/supervisor", async (req, res) => {
   try {
     const sender = await Student.findOne({ regID: req.body.senderID });
-    const receiver = await Professor.findOne({ regID: req.body.receiverID }); 
+    const receiver = await Professor.findOne({ regID: req.body.receiverID });
 
     if (!sender || !receiver) {
       res.status(404).json("Sender or Receiver not found");
@@ -31,8 +31,8 @@ router.post("/request/supervisor", async (req, res) => {
       courseID: req.body.courseID,
       status: "pending",
       type: "supervisor",
-      senderName: sender.name, 
-      receiverName: receiver.name 
+      senderName: sender.name,
+      receiverName: receiver.name,
     });
 
     const request = await requestItem.save();
@@ -51,7 +51,7 @@ router.post("/request/supervisor", async (req, res) => {
 router.post("/requests/student", async (req, res) => {
   try {
     const studentID = req.body.studentID;
-    const request = await Request.find({ senderID: studentID });
+    const request = await Request.findOne({ senderID: studentID });
 
     if (!request || request.length === 0) {
       const emptyRequest = {
@@ -61,7 +61,7 @@ router.post("/requests/student", async (req, res) => {
         status: "",
         type: "",
         senderName: "",
-        receiverName: ""
+        receiverName: "",
       };
       res.json(emptyRequest);
     } else {
@@ -75,15 +75,16 @@ router.post("/requests/student", async (req, res) => {
 
 router.put("/requests/registerCourse", async (req, res) => {
   try {
-    const { regID, courseID, skillsVector } = req.body;
+    const { regID, skillsVector } = req.body;
 
     const requestItem = await Request.findOne({
       senderID: regID,
-      courseID: courseID, 
     });
 
     if (!requestItem) {
-      return res.status(404).json("No request found for the given regID and courseID.");
+      return res
+        .status(404)
+        .json("No request found for the given regID and courseID.");
     }
 
     const request = await Request.findByIdAndUpdate(
@@ -96,43 +97,45 @@ router.put("/requests/registerCourse", async (req, res) => {
     );
 
     const updatedStudent = await Student.findOneAndUpdate(
-      { regID: regID }, 
+      { regID: regID },
       { $set: { skillsVector: skillsVector } },
       { new: true }
     );
 
     if (!updatedStudent) {
-      return res.status(404).json("Student not found or skills vector update failed.");
+      return res
+        .status(404)
+        .json("Student not found or skills vector update failed.");
     }
 
-    res.json("Successfully registered for the course and updated skills vector.");
+    res.json(
+      "Successfully registered for the course and updated skills vector."
+    );
   } catch (error) {
     console.error("Error at /requests/registerCourse endpoint:", error);
-    res.status(500).json({ error: "Unable to update the request or skills vector", details: error.message });
+    res.status(500).json({
+      error: "Unable to update the request or skills vector",
+      details: error.message,
+    });
   }
 });
 
-
-
-router.delete(
-  "/requests/supervisorRequest/:studentID",
-  async (req, res) => {
-    try {
-      let studentID = req.params.studentID;
-      const requestItem = await Request.findOne({
-        senderID: studentID
-      });
-      const request = await Request.findByIdAndDelete(requestItem._id);
-      console.log(request);
-      if (!request) {
-        return res.status(404).json("Request not found");
-      }
-      res.json("deleted successfully");
-    } catch (error) {
-      console.error(error);
-      res.status(500).json("Unable to delete the request");
+router.delete("/requests/supervisorRequest/:studentID", async (req, res) => {
+  try {
+    let studentID = req.params.studentID;
+    const requestItem = await Request.findOne({
+      senderID: studentID,
+    });
+    const request = await Request.findByIdAndDelete(requestItem._id);
+    console.log(request);
+    if (!request) {
+      return res.status(404).json("Request not found");
     }
+    res.json("deleted successfully");
+  } catch (error) {
+    console.error(error);
+    res.status(500).json("Unable to delete the request");
   }
-);
+});
 
 module.exports = router;
