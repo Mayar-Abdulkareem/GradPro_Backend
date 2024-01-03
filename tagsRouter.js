@@ -4,26 +4,49 @@ const mongoose = require("mongoose");
 
 const tagSchema = new mongoose.Schema({
   for: String,
-  values: Object,
+  categories: [
+    {
+      category: String,
+      skills: [String],
+      courseID: String
+    }
+  ]
 });
 
 const Tag = mongoose.model("Tag", tagSchema);
 
-router.get("/tags/:for", async (req, res) => {
-  const type = req.params.for;
-  try {
-    const tag = await Tag.findOne({ for: type });
+router.get("/tags/student/:courseID", async (req, res) => {
+  const courseID = req.params.courseID || null;
 
-    if (!tag) {
+  try {
+    const tag = await Tag.findOne({ for: "student" });
+
+    if (!tag || !tag.categories) {
       res.json([]);
     } else {
-      res.json(tag.values);
+      const filteredCategories = tag.categories.filter((category) => {
+        return courseID === null || category.courseID === courseID;
+      });
+
+      const formattedCategories = filteredCategories.map((category) => {
+        return {
+          title: category.category,
+          skills: category.skills.map((skill) => ({
+            title: skill,
+            isSelected: false,
+          })),
+        };
+      });
+
+      res.json(formattedCategories);
     }
   } catch (error) {
-    console.error("Error during login:", error);
-    res.status(500).json({ message: "Error during login" });
+    console.error("Error retrieving categories:", error);
+    res.status(500).json({ message: "Error retrieving categories" });
   }
 });
+
+
 
 module.exports = router;
 exports.Tag = Tag;
