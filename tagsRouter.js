@@ -8,9 +8,9 @@ const tagSchema = new mongoose.Schema({
     {
       category: String,
       skills: [String],
-      courseID: String
-    }
-  ]
+      courseID: String,
+    },
+  ],
 });
 
 const Tag = mongoose.model("Tag", tagSchema);
@@ -25,7 +25,7 @@ router.get("/tags/student/:courseID", async (req, res) => {
       res.json([]);
     } else {
       const filteredCategories = tag.categories.filter((category) => {
-        return courseID === null || category.courseID === courseID;
+        return category.courseID === null || category.courseID === courseID;
       });
 
       const formattedCategories = filteredCategories.map((category) => {
@@ -45,8 +45,6 @@ router.get("/tags/student/:courseID", async (req, res) => {
     res.status(500).json({ message: "Error retrieving categories" });
   }
 });
-
-
 
 module.exports = router;
 exports.Tag = Tag;
