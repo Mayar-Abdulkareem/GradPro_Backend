@@ -173,7 +173,7 @@ router.post(
   upload.single("image"),
   async (req, res) => {
     try {
-      console.log(req.body);
+      // console.log(req.body);
       let storeItemID = req.params.storeItemID;
       const update = {};
 
@@ -182,20 +182,22 @@ router.post(
           if (req.body[field]) update[field] = req.body[field];
         }
       );
-      console.log(req.file);
+
       if (req.file) {
         const imgBBResponse = await axios({
           method: "post",
           url: "https://api.imgbb.com/1/upload",
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
           data: {
             key: "b587d0ad1713024b7a6ba6763d9a62b9",
             image: req.file.buffer.toString("base64"),
           },
         });
-
-        update.imageUrl = imgBBResponse.data.data.url; // Save the ImgBB image URL instead
+        update.image = imgBBResponse.data.data.url; // Save the ImgBB image URL instead
       }
-      // console.log(update);
+
       const updatedStoreItem = await Store.findByIdAndUpdate(
         storeItemID,
         update,
