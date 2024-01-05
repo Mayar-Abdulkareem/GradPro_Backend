@@ -1,4 +1,5 @@
 const { Student, Professor, Admin } = require("./loginRouter");
+const { Course } = require("./coursesRouter");
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
@@ -7,25 +8,12 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 router.post("/profileInfo", async (req, res) => {
-  const { regID } = req.body;
+  const { regID, role } = req.body;
   try {
-    const student = await Student.findOne({ regID });
-    if (!student) {
+    if (role === "supervisor") {
       const professor = await Professor.findOne({ regID });
-
       if (!professor) {
-        const admin = await Admin.findOne({ ID: regID });
-
-        if (!admin) {
-          return res.json([]);
-        } else {
-          res.json({
-            ID: admin.ID,
-            name: admin.name,
-            email: admin.email,
-            profileImage: admin.profileImage,
-          });
-        }
+        return res.json(nullObject("professor"));
       } else {
         res.json({
           regID: professor.regID,
@@ -34,11 +22,53 @@ router.post("/profileInfo", async (req, res) => {
           profileImage: professor.profileImage,
         });
       }
-    } else {
-      const peer = await Student.findOne({ regID: student.peerID });
-      const supervisor = await Professor.findOne({
-        regID: student.supervisorID,
+    } else if (role === "admin") {
+      const admin = await Admin.findOne({ ID: regID });
+      if (!admin) {
+        return res.json(nullObject("admin"));
+      } else {
+        res.json({
+          ID: admin.ID,
+          name: admin.name,
+          email: admin.email,
+          profileImage: admin.profileImage,
+        });
+      }
+    } else if (role === "student") {
+      const student = await Student.findOne({ regID });
+      if (!student) {
+        return res.json(nullObject("student"));
+      }
+
+      let registeredCourses = [];
+
+      student.courses.forEach((course) => {
+        if (course.status === "registered") {
+          registeredCourses.push({
+            courseID: course.courseID,
+            supervisorID: course.supervisorID,
+          });
+        }
       });
+
+      await Promise.all(
+        registeredCourses.map(async (registeredCourse, index) => {
+          const course = await Course.findOne({
+            courseID: registeredCourse.courseID,
+          });
+          const professor = await Professor.findOne({
+            regID: registeredCourse.supervisorID,
+          });
+          return (registeredCourses[index] = {
+            ...registeredCourse,
+            courseName: course.courseName,
+            supervisorName: professor.name,
+          });
+        })
+      );
+
+      const peer = student.peerID ? await Student.findOne({ regID: student.peerID }) : null;
+      const supervisor = student.supervisorID ? await Professor.findOne({ regID: student.supervisorID }) : null;
 
       res.json({
         regID: student.regID,
@@ -46,9 +76,11 @@ router.post("/profileInfo", async (req, res) => {
         email: student.email,
         profileImage: student.profileImage,
         GPA: student.GPA,
-        peer: peer.name,
-        supervisor: supervisor.name,
         phoneNumber: student.phoneNumber,
+        profileImage: student.profileImage,
+        peer: peer ? peer.name : null,
+        skillsVector: student.skillsVector,
+        courses: registeredCourses
       });
     }
   } catch (error) {
@@ -56,6 +88,27 @@ router.post("/profileInfo", async (req, res) => {
     res.status(500).json({ message: "Error during fetching profile info" });
   }
 });
+
+function nullObject(entityType) {
+  let baseNullObject = {
+    ID: null,
+    name: null,
+    email: null,
+    profileImage: null
+  };
+
+  if (entityType === "student") {
+    return {
+      ...baseNullObject,
+      GPA: null,
+      phoneNumber: null,
+      peer: null,
+      skillsVector: null,
+      courses: []
+    };
+  }
+  return baseNullObject;
+}
 
 router.put(
   "/profileInfo/editProfileImage",
