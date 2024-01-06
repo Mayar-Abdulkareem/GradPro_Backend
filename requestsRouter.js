@@ -120,6 +120,192 @@ router.put("/requests/registerCourse", async (req, res) => {
   }
 });
 
+router.put("/requests/sendPeerRequest", async (req, res) => {
+  try {
+    const { senderID, receiverID } = req.body;
+
+    const requestItem = await Request.findOne({
+      senderID,
+    });
+
+    const receiver = await Student.findOne({ regID: req.body.receiverID });
+
+    if (!receiver) {
+      res
+        .status(404)
+        .json("There is no student with this registeration number");
+      return;
+    }
+
+    if (receiver.peerID && receiver.peerID !== "") {
+      res.status(404).json("Sorry, this student has a peer");
+      return;
+    }
+
+    if (
+      !receiver.courses.some(
+        (obj) =>
+          obj.courseID === requestItem.courseID &&
+          obj.status.toLowerCase() === "registered"
+      )
+    ) {
+      res.status(404).json("This student didn't register this course");
+      return;
+    }
+    if (receiverID === senderID) {
+      res.status(404).json("You can't send a request to your self");
+      return;
+    }
+
+    if (!requestItem) {
+      return res.status(404).json("No request found for the given regID.");
+    }
+
+    await Request.findByIdAndUpdate(
+      requestItem._id,
+      {
+        type: "peer",
+        status: "pending",
+        receiverID,
+        receiverName: receiver.name,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    res.json("Successfully sent the peer request.");
+  } catch (error) {
+    console.error("Error at /requests/peerRequest endpoint:", error);
+    res.status(500).json({
+      error: "Unable to update the request or skills vector",
+      details: error.message,
+    });
+  }
+});
+
+router.put("/requests/cancelPeerRequest", async (req, res) => {
+  try {
+    const { senderID } = req.body;
+
+    const requestItem = await Request.findOne({
+      senderID,
+    });
+
+    if (!requestItem) {
+      return res.status(404).json("No request found for the given regID.");
+    }
+
+    const student = await Student.findOne({ regID: senderID });
+
+    const supervisor = await Professor.findOne({ regID: student.supervisorID });
+
+    await Request.findByIdAndUpdate(
+      requestItem._id,
+      {
+        type: "course",
+        status: "accepted",
+        receiverID: student.supervisorID,
+        receiverName: supervisor.name,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    res.json("Successfully canceled the peer request.");
+  } catch (error) {
+    console.error("Error at /requests/cancelPeerRequest endpoint:", error);
+    res.status(500).json({
+      error: "Unable to update the request or skills vector",
+      details: error.message,
+    });
+  }
+});
+
+router.put("/requests/getPeerRequests", async (req, res) => {
+  try {
+    const { receiverID } = req.body;
+
+    const requests = await Request.find({
+      receiverID,
+    });
+
+    if (!requests) {
+      return res.status(404).json("No request found for the given regID.");
+    }
+
+    res.json(requests);
+  } catch (error) {
+    console.error("Error at /requests/cancelPeerRequest endpoint:", error);
+    res.status(500).json({
+      error: "Unable to update the request or skills vector",
+      details: error.message,
+    });
+  }
+});
+
+router.put("/requests/acceptPeerRequest", async (req, res) => {
+  try {
+    const { senderID, receiverID } = req.body;
+
+    const requestItem = await Request.findOne({
+      senderID,
+    });
+
+    const receiver = await Student.findOne({ regID: receiverID });
+    const sender = await Student.findOne({ regID: senderID });
+
+    if (receiver.peerID && receiver.peerID !== "") {
+      res.status(404).json("Sorry, this student has a peer");
+      return;
+    }
+
+    if (
+      !receiver.courses.some(
+        (obj) =>
+          obj.courseID === requestItem.courseID &&
+          obj.status.toLowerCase() === "registered"
+      )
+    ) {
+      res.status(404).json("This student didn't register this course");
+      return;
+    }
+    if (receiverID === senderID) {
+      res.status(404).json("You can't send a request to your self");
+      return;
+    }
+
+    if (!requestItem) {
+      return res.status(404).json("No request found for the given regID.");
+    }
+
+    await Request.findByIdAndUpdate(
+      requestItem._id,
+      {
+        type: "peer",
+        status: "pending",
+        receiverID,
+        receiverName: receiver.name,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    res.json("Successfully sent the peer request.");
+  } catch (error) {
+    console.error("Error at /requests/peerRequest endpoint:", error);
+    res.status(500).json({
+      error: "Unable to update the request or skills vector",
+      details: error.message,
+    });
+  }
+});
+
 router.delete("/requests/supervisorRequest/:studentID", async (req, res) => {
   try {
     let studentID = req.params.studentID;

@@ -40,6 +40,34 @@ router.post("/profileInfo", async (req, res) => {
         regID: student.supervisorID,
       });
 
+      if (!supervisor) {
+        res.json({
+          regID: student.regID,
+          name: student.name,
+          email: student.email,
+          profileImage: student.profileImage,
+          GPA: student.GPA,
+          peer: "",
+          supervisor: "",
+          phoneNumber: student.phoneNumber,
+        });
+        return;
+      }
+
+      if (!peer) {
+        res.json({
+          regID: student.regID,
+          name: student.name,
+          email: student.email,
+          profileImage: student.profileImage,
+          GPA: student.GPA,
+          peer: "",
+          supervisor: supervisor.name,
+          phoneNumber: student.phoneNumber,
+        });
+        return;
+      }
+
       res.json({
         regID: student.regID,
         name: student.name,
