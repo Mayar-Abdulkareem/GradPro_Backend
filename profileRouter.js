@@ -83,6 +83,7 @@ router.post("/profileInfo", async (req, res) => {
         phoneNumber: student.phoneNumber,
         profileImage: student.profileImage,
         peer: peer ? peer.name : null,
+        supervisor: supervisor ? supervisor.name : null,
         skillsVector: student.skillsVector,
         courses: registeredCourses,
       });
