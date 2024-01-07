@@ -15,39 +15,6 @@ const requestSchema = new mongoose.Schema({
 
 const Request = mongoose.model("Request", requestSchema);
 
-router.post("/request/supervisor", async (req, res) => {
-  try {
-    const sender = await Student.findOne({ regID: req.body.senderID });
-    const receiver = await Professor.findOne({ regID: req.body.receiverID });
-
-    if (!sender || !receiver) {
-      res.status(404).json("Sender or Receiver not found");
-      return;
-    }
-
-    const requestItem = new Request({
-      senderID: req.body.senderID,
-      receiverID: req.body.receiverID,
-      courseID: req.body.courseID,
-      status: "pending",
-      type: "supervisor",
-      senderName: sender.name,
-      receiverName: receiver.name,
-    });
-
-    const request = await requestItem.save();
-
-    if (!request) {
-      res.status(404).json("Failed to send the request");
-    } else {
-      res.json("Request successfully sent");
-    }
-  } catch (error) {
-    console.error("Error during sending request:", error);
-    res.status(500).json("Failed to send the request");
-  }
-});
-
 router.post("/requests/student", async (req, res) => {
   try {
     const studentID = req.body.studentID;
@@ -120,6 +87,7 @@ router.put("/requests/registerCourse", async (req, res) => {
   }
 });
 
+// Peer Requests
 router.put("/requests/sendPeerRequest", async (req, res) => {
   try {
     const { senderID, receiverID } = req.body;
@@ -385,6 +353,42 @@ router.put("/requests/acceptPeerRequest", async (req, res) => {
   }
 });
 
+// Supervisor Requests
+// send supervisor request
+router.post("/request/supervisor", async (req, res) => {
+  try {
+    const sender = await Student.findOne({ regID: req.body.senderID });
+    const receiver = await Professor.findOne({ regID: req.body.receiverID });
+
+    if (!sender || !receiver) {
+      res.status(404).json("Sender or Receiver not found");
+      return;
+    }
+
+    const requestItem = new Request({
+      senderID: req.body.senderID,
+      receiverID: req.body.receiverID,
+      courseID: req.body.courseID,
+      status: "pending",
+      type: "supervisor",
+      senderName: sender.name,
+      receiverName: receiver.name,
+    });
+
+    const request = await requestItem.save();
+
+    if (!request) {
+      res.status(404).json("Failed to send the request");
+    } else {
+      res.json("Request successfully sent");
+    }
+  } catch (error) {
+    console.error("Error during sending request:", error);
+    res.status(500).json("Failed to send the request");
+  }
+});
+
+// cancel supervisor request
 router.delete("/requests/supervisorRequest/:studentID", async (req, res) => {
   try {
     let studentID = req.params.studentID;
@@ -400,6 +404,132 @@ router.delete("/requests/supervisorRequest/:studentID", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json("Unable to delete the request");
+  }
+});
+
+router.put("/requests/getSupervisorRequests", async (req, res) => {
+  try {
+    const { receiverID, courseID } = req.body;
+
+    const requests = await Request.find({
+      receiverID,
+      type: "supervisor",
+      status: "pending",
+      courseID,
+    });
+
+    if (!requests) {
+      return res.status(404).json("No request found for the given regID.");
+    }
+    const resultArr = [];
+    await Promise.all(
+      requests.map(async (request) => {
+        const student = await Student.findOne({ regID: request.senderID });
+        resultArr.push({
+          ...request._doc,
+          GPA: student.GPA,
+        });
+      })
+    );
+    res.json(resultArr);
+  } catch (error) {
+    console.error("Error at /requests/cancelPeerRequest endpoint:", error);
+    res.status(500).json({
+      error: "Unable to update the request or skills vector",
+      details: error.message,
+    });
+  }
+});
+
+router.put("/requests/acceptSupervisorRequest", async (req, res) => {
+  try {
+    const { senderID, receiverID, courseID } = req.body;
+
+    const senderRequest = await Request.findOne({
+      senderID,
+    });
+
+    const receiver = await Professor.findOne({ regID: receiverID });
+    const sender = await Student.findOne({ regID: senderID });
+
+    if (!senderRequest) {
+      return res.status(404).json("No request found for the given regID.");
+    }
+
+    await Request.findByIdAndUpdate(
+      senderRequest._id,
+      {
+        type: "supervisor",
+        status: "accepted",
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    await Student.findByIdAndUpdate(
+      sender._id,
+      {
+        supervisorID: receiverID,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    const hasCourseID = await Professor.exists({
+      _id: receiver._id,
+      courseStudents: {
+        $elemMatch: {
+          courseID: courseID,
+        },
+      },
+    });
+
+    if (receiver.courseStudents.length > 0 && hasCourseID) {
+      await Professor.updateOne(
+        { _id: receiver._id, "courseStudents.courseID": courseID },
+        {
+          $addToSet: {
+            "courseStudents.$.students": {
+              studentID: senderID,
+              studentName: sender.name,
+            },
+          },
+        }
+      );
+    } else {
+      await Professor.updateOne(
+        { _id: receiver._id },
+        {
+          $addToSet: {
+            courseStudents: {
+              courseID: courseID,
+              students: [
+                {
+                  studentID: senderID,
+                  studentName: sender.name,
+                },
+              ],
+            },
+          },
+        },
+        { upsert: true }
+      );
+    }
+
+    res.json("Successfully accepted the supervisor request.");
+  } catch (error) {
+    console.error(
+      "Error at /requests/acceptSupervisorRequest endpoint:",
+      error
+    );
+    res.status(500).json({
+      error: "Unable to accept the supervisor request",
+      details: error.message,
+    });
   }
 });
 
