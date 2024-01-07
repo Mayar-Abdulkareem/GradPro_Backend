@@ -447,6 +447,9 @@ router.put("/requests/acceptSupervisorRequest", async (req, res) => {
 
     const senderRequest = await Request.findOne({
       senderID,
+      type: "supervisor",
+      status: "pending",
+      receiverID,
     });
 
     const receiver = await Professor.findOne({ regID: receiverID });
@@ -455,29 +458,6 @@ router.put("/requests/acceptSupervisorRequest", async (req, res) => {
     if (!senderRequest) {
       return res.status(404).json("No request found for the given regID.");
     }
-
-    await Request.findByIdAndUpdate(
-      senderRequest._id,
-      {
-        type: "supervisor",
-        status: "accepted",
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
-
-    await Student.findByIdAndUpdate(
-      sender._id,
-      {
-        supervisorID: receiverID,
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
 
     const hasCourseID = await Professor.exists({
       _id: receiver._id,
@@ -489,6 +469,17 @@ router.put("/requests/acceptSupervisorRequest", async (req, res) => {
     });
 
     if (receiver.courseStudents.length > 0 && hasCourseID) {
+      const result = await Professor.findOne(
+        { _id: receiver._id, "courseStudents.courseID": courseID },
+        { "courseStudents.$": 1 }
+      );
+      console.log(result);
+      if (result.courseStudents[0].students.length >= 1) {
+        res
+          .status(404)
+          .json("You can't accept more students, you've reached the max limit");
+        return;
+      }
       await Professor.updateOne(
         { _id: receiver._id, "courseStudents.courseID": courseID },
         {
@@ -519,6 +510,29 @@ router.put("/requests/acceptSupervisorRequest", async (req, res) => {
         { upsert: true }
       );
     }
+
+    await Request.findByIdAndUpdate(
+      senderRequest._id,
+      {
+        type: "supervisor",
+        status: "accepted",
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    await Student.findByIdAndUpdate(
+      sender._id,
+      {
+        supervisorID: receiverID,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
     res.json("Successfully accepted the supervisor request.");
   } catch (error) {
