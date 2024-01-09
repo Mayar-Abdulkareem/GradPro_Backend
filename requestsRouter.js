@@ -473,8 +473,8 @@ router.put("/requests/acceptSupervisorRequest", async (req, res) => {
         { _id: receiver._id, "courseStudents.courseID": courseID },
         { "courseStudents.$": 1 }
       );
-      console.log(result);
-      if (result.courseStudents[0].students.length >= 1) {
+
+      if (result.courseStudents[0].students.length >= 12) {
         res
           .status(404)
           .json("You can't accept more students, you've reached the max limit");
@@ -485,8 +485,8 @@ router.put("/requests/acceptSupervisorRequest", async (req, res) => {
         {
           $addToSet: {
             "courseStudents.$.students": {
-              studentID: senderID,
-              studentName: sender.name,
+              id: senderID,
+              name: sender.name,
             },
           },
         }
@@ -500,8 +500,8 @@ router.put("/requests/acceptSupervisorRequest", async (req, res) => {
               courseID: courseID,
               students: [
                 {
-                  studentID: senderID,
-                  studentName: sender.name,
+                  id: senderID,
+                  name: sender.name,
                 },
               ],
             },
