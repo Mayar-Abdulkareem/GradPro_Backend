@@ -7,7 +7,7 @@ const app = express();
 const port = 3001;
 app.use(cors());
 
-mongoose.connect("mongodb://127.0.0.1:27017/GradPro", {
+mongoose.connect("mongodb+srv://gradpro:fhfaTAi2MBNDw6dS@gradpro.nz27yys.mongodb.net/GradPro", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
@@ -36,6 +36,10 @@ const tagsRoutes = require("./tagsRouter");
 const peerMatchingRoutes = require("./peerMatchingRouter");
 const assignmentsRoutes = require("./assignmentsRouter");
 const profileRoutes = require("./profileRouter");
+
+app.get('/health', (req, res) => {
+  return res.send('Healthy')
+});
 
 app.use(loginRoutes);
 app.use(coursesRoutes);

@@ -3,15 +3,80 @@ const router = express.Router();
 const mongoose = require("mongoose");
 
 const boardSchema = new mongoose.Schema({
-  collaborators: Array,
   courseID: String,
   columns: Array,
-  tasks: Array,
+  regID: String,
+  supervisorID: String
 });
 
 const Board = mongoose.model("Board", boardSchema);
 
-router.get("/boards/:courseID/:collaboratorID", async (req, res) => {
+// Mayar 
+
+router.get("/boards/getBoard/:courseID/:regID", async (req, res) => {
+  try {
+    const courseID = req.params.courseID;
+    const regID = req.params.regID;
+    const board = await Board.findOne({
+      regID: regID,
+      courseID: courseID,
+    });
+    if (!board) {
+      res.status(404).json("No Elements in the store");
+    } else {
+      res.json(board);
+    }
+  } catch (error) {
+    console.error("Error during fetching store items:", error);
+    res.status(500).json({ message: "Error during fetching store items" });
+  }
+});
+
+router.use(express.json());
+ 
+router.put("/boards/saveBoard", async (req, res) => {
+  try {
+    console.log("Received request to save board:", req.body); // Log the incoming request body
+
+    const { regID, courseID, columns, tasks, supervisorID } = req.body;
+
+    // Log the parsed values
+    console.log("Parsed Request Body - regID:", regID);
+    console.log("Parsed Request Body - courseID:", courseID);
+    console.log("Parsed Request Body - columns:", columns);
+    console.log("Parsed Request Body - tasks:", tasks);
+    console.log("Parsed Request Body - supervisorID:", supervisorID);
+
+    const query = { regID, courseID };
+    const update = { regID, courseID, columns, tasks, supervisorID };
+
+    console.log("Attempting to update board with query:", query); // Log the query
+    console.log("Attempting to update board with update data:", update); // Log the update data
+
+    const response = await Board.findOneAndUpdate(query, update, {
+      new: true,
+      upsert: true,
+      runValidators: true,
+      setDefaultsOnInsert: true,
+    });
+
+    console.log("Update operation response:", response); // Log the response from the database operation
+
+    if (response) {
+      res.json("Board updated successfully");
+      console.log("Board updated successfully for:", query); // Log successful update
+    } else {
+      res.status(404).json("Board not found and failed to create");
+      console.log("Failed to find or create board for:", query); // Log failure details
+    }
+  } catch (error) {
+    console.error("Error during board update/create:", error); // Log any caught errors
+    res.status(500).json("Error during board update/create");
+  }
+});
+
+// Mayar
+ router.get("/boards/:courseID/:collaboratorID", async (req, res) => {
   try {
     const courseID = req.params.courseID;
     const collaboratorID = req.params.collaboratorID;
@@ -287,7 +352,7 @@ router.put(
             runValidators: true,
           }
         );
-        return res.json(response);
+        return res.json("Board updated successfully");
       } else {
         return res.status(404).json("Board not found");
       }
