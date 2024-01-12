@@ -12,4 +12,4 @@ EXPOSE 3001
 
 ENV NODE_ENV production
 
-CMD ['node', 'server.js']
+CMD ["node", "server.js"]
