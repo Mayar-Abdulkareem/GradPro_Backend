@@ -7,7 +7,7 @@ const app = express();
 const port = 3001;
 app.use(cors());
 
-mongoose.connect(process.env.DB_URI, {
+mongoose.connect("mongodb+srv://gradpro:fhfaTAi2MBNDw6dS@gradpro.nz27yys.mongodb.net/GradPro", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
