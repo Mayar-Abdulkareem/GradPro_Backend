@@ -35,7 +35,7 @@ jobs:
 
     - name: Deploy Image to Amazon ECS
       run: |
-        aws ecs update-service --cluster gradpro2 --service gradpro --force-new-deployment
+        aws ecs update-service --cluster GradPro2 --service gradpro --force-new-deployment
 
     - name: Clean Up
       run: docker rmi $ECR_REGISTRY/$IMAGE_REPO:${IMAGE_TAG}

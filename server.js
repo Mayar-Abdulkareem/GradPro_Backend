@@ -37,6 +37,10 @@ const peerMatchingRoutes = require("./peerMatchingRouter");
 const assignmentsRoutes = require("./assignmentsRouter");
 const profileRoutes = require("./profileRouter");
 
+app.get('/health', (req, res) => {
+  return res.send('Healthy')
+});
+
 app.use(loginRoutes);
 app.use(coursesRoutes);
 app.use(storeRoutes);
