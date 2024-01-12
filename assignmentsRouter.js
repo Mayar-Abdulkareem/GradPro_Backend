@@ -5,7 +5,9 @@ const multer = require("multer");
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 const { ObjectId } = require("mongodb");
-const { Student } = require("./loginRouter");
+const { Student, Professor } = require("./loginRouter");
+
+const { Course } = require("./coursesRouter");
 
 const assignmentSchema = new mongoose.Schema({
   title: String,
@@ -53,7 +55,21 @@ router.get("/assignments/:assignmentID", async (req, res) => {
     const assignment = await Assignment.findOne({
       _id: new ObjectId(assignmentID),
     });
-    return res.json(assignment);
+    if (!assignment || assignment.length === 0) {
+      res.json({});
+    } else {
+      res.json({
+        id: assignment._id,
+        title: assignment.title,
+        deadline: assignment.deadline,
+        courseID: assignment.courseID,
+        file: {
+          fileName: assignment.file.fileName || "",
+          content: assignment.file.content.toString("base64") || "",
+          contentType: assignment.file.contentType || "",
+        },
+      });
+    }
   } catch (error) {
     console.error("Error during fetching previous projects:", error);
     res
@@ -70,16 +86,33 @@ router.post("/submissions/getSupervisorSubmissions", async (req, res) => {
     const studentIDsArray = students.map((s) => {
       return s.regID;
     });
-    const peerIDsArray = students.map((s) => {
-      return s.peerID;
-    });
+    // const peerIDsArray = students.map((s) => {
+    //   return s.peerID;
+    // });
     // console.log(studentIDsArray);
     // console.log(peerIDsArray);
     const submissions = await Submission.find({
       studentID: { $in: studentIDsArray },
       assignmentID,
     });
-    return res.json({ submissions, peerIDsArray });
+
+    const resultArr = [];
+    await Promise.all(
+      submissions.map(async (submission) => {
+        const student = await Student.findOne({ regID: submission.studentID });
+        const peerID = student.peerID;
+        const supervisorID = student.supervisorID;
+        const professor = await Professor.findOne({ regID: supervisorID });
+        return resultArr.push({
+          ...submission._doc,
+          peerID,
+          supervisorID,
+          supervisorName: professor.name,
+        });
+      })
+    );
+
+    return res.json(resultArr);
   } catch (error) {
     console.error("Error during fetching submissions:", error);
     res.status(500).json({ message: "Error during fetching submissions" });
@@ -142,7 +175,6 @@ router.post("/submissions/getSubmissionDetails", async (req, res) => {
     if (!result || result.length === 0) {
       res.json({});
     } else {
-      res.contentType(result.file.contentType);
       res.json({
         id: result._id,
         text: result.text,
@@ -196,5 +228,106 @@ router.delete("/submissions/:submissionID", async (req, res) => {
     res.status(500).json("Unable to delete the item");
   }
 });
+
+// ============================== ADMIN ===========================
+router.get("/assignments", async (req, res) => {
+  try {
+    const assignments = await Assignment.find({});
+    const resultArr = [];
+    await Promise.all(
+      assignments.map(async (assignment) => {
+        const course = await Course.findOne({ courseID: assignment.courseID });
+        return resultArr.push({
+          ...assignment._doc,
+          courseID: assignment.courseID,
+          courseName: course.courseName,
+        });
+      })
+    );
+    return res.json(resultArr);
+  } catch (error) {
+    console.error("Error during fetching previous projects:", error);
+    res
+      .status(500)
+      .json({ message: "Error during fetching previous projects" });
+  }
+});
+
+router.post("/submissions/getAssignmentSubmissions", async (req, res) => {
+  try {
+    const assignmentID = req.body.assignmentID;
+
+    const submissions = await Submission.find({
+      assignmentID,
+    });
+
+    const resultArr = [];
+    await Promise.all(
+      submissions.map(async (submission) => {
+        const student = await Student.findOne({ regID: submission.studentID });
+        const peerID = student.peerID;
+        const supervisorID = student.supervisorID;
+        const professor = await Professor.findOne({ regID: supervisorID });
+        console.log(student);
+        console.log(professor);
+        return resultArr.push({
+          ...submission._doc,
+          peerID,
+          supervisorID,
+          supervisorName: professor.name,
+        });
+      })
+    );
+    // console.log(resultArr);
+    return res.json(resultArr);
+  } catch (error) {
+    console.error("Error during fetching submissions:", error);
+    res.status(500).json({ message: "Error during fetching submissions" });
+  }
+});
+
+router.delete("/assignment/:assignmentID", async (req, res) => {
+  try {
+    let assignmentID = req.params.assignmentID;
+    let objectID = mongoose.Types.ObjectId;
+    let newID = new objectID(assignmentID);
+
+    const assignment = await Assignment.findByIdAndDelete(newID);
+    if (!assignment) {
+      return res.json([]);
+    }
+    res.json("Assginment deleted successfully");
+  } catch (error) {
+    console.log(error);
+    res.status(500).json("Unable to delete the item");
+  }
+});
+
+router.post(
+  "/assignments/addAssignment",
+  upload.single("file"),
+  async (req, res) => {
+    try {
+      const { title, courseID, deadline } = req.body;
+
+      const newData = new Assignment({
+        title,
+        courseID,
+        deadline,
+        file: {
+          fileName: (req.file && req.file.originalname) || "",
+          content: (req.file && req.file.buffer) || "",
+          contentType: (req.file && req.file.mimetype) || "",
+        },
+      });
+
+      newData.save();
+      return res.json("assignment added successfully");
+    } catch (error) {
+      console.error("Error during adding assignment:", error);
+      res.status(500).json({ message: "Error during adding assignment" });
+    }
+  }
+);
 
 module.exports = router;

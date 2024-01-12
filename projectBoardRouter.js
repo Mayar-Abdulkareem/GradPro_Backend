@@ -129,7 +129,8 @@ router.post(
             tasks: {
               id: req.body.id.toString(),
               columnId: columnID,
-              content: req.body.content,
+              title: req.body.content,
+              describtion: "",
             },
           },
         }
@@ -153,7 +154,6 @@ router.post("/boards/addColumn", async (req, res) => {
   try {
     const collaborators = req.body.collaborators;
     const courseID = req.body.courseID;
-    // const courseID = req.params.courseID;
     const result = await Board.updateOne(
       {
         collaborators: collaborators,
@@ -188,6 +188,8 @@ router.put(
       const collaboratorID = req.params.collaboratorID;
       const courseID = req.params.courseID;
       const taskID = req.params.taskID;
+      const title = req.body.title;
+      const describtion = req.body.describtion;
 
       const board = await Board.findOne({
         collaborators: collaboratorID,
@@ -197,7 +199,8 @@ router.put(
       if (board) {
         const taskIndex = board.tasks.findIndex((task) => task.id === taskID);
         if (taskIndex !== -1) {
-          board.tasks[taskIndex].content = req.body.content;
+          board.tasks[taskIndex].title = title;
+          board.tasks[taskIndex].describtion = describtion;
           const response = await Board.findByIdAndUpdate(
             board._id,
             { tasks: board.tasks },
