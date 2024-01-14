@@ -1,17 +1,25 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
+const { Student } = require("./loginRouter");
+
+// const boardSchema = new mongoose.Schema({
+//   courseID: String,
+//   columns: Array,
+//   regID: String,
+//   supervisorID: String
+// });
 
 const boardSchema = new mongoose.Schema({
   courseID: String,
   columns: Array,
-  regID: String,
-  supervisorID: String
+  tasks: Array,
+  collaborators: Object,
 });
 
 const Board = mongoose.model("Board", boardSchema);
 
-// Mayar 
+// Mayar
 
 router.get("/boards/getBoard/:courseID/:regID", async (req, res) => {
   try {
@@ -33,7 +41,7 @@ router.get("/boards/getBoard/:courseID/:regID", async (req, res) => {
 });
 
 router.use(express.json());
- 
+
 router.put("/boards/saveBoard", async (req, res) => {
   try {
     console.log("Received request to save board:", req.body); // Log the incoming request body
@@ -76,12 +84,12 @@ router.put("/boards/saveBoard", async (req, res) => {
 });
 
 // Mayar
- router.get("/boards/:courseID/:collaboratorID", async (req, res) => {
+router.get("/boards/:courseID/:studentID", async (req, res) => {
   try {
     const courseID = req.params.courseID;
-    const collaboratorID = req.params.collaboratorID;
+    const studentID = req.params.studentID;
     const board = await Board.find({
-      collaborators: collaboratorID,
+      "collaborators.studentID": studentID,
       courseID: courseID,
     });
     if (!board) {
@@ -95,52 +103,49 @@ router.put("/boards/saveBoard", async (req, res) => {
   }
 });
 
-router.delete(
-  "/boards/task/:collaboratorID/:courseID/:taskID",
-  async (req, res) => {
-    try {
-      const collaboratorID = req.params.collaboratorID;
-      const courseID = req.params.courseID;
-      const taskID = req.params.taskID.toString();
-      const board = await Board.findOne({
-        collaborators: collaboratorID,
-        courseID: courseID,
-      });
-      if (board) {
-        const taskIndex = board.tasks.findIndex((task) => task.id === taskID);
-        if (taskIndex !== -1) {
-          board.tasks.splice(taskIndex, 1);
-          const response = await Board.findByIdAndUpdate(
-            board._id,
-            { tasks: board.tasks },
-            {
-              new: true,
-              runValidators: true,
-            }
-          );
-          return res.json(response);
-        } else {
-          return res.status(404).json("Task not found");
-        }
+router.delete("/boards/task/:studentID/:courseID/:taskID", async (req, res) => {
+  try {
+    const studentID = req.params.studentID;
+    const courseID = req.params.courseID;
+    const taskID = req.params.taskID.toString();
+    const board = await Board.findOne({
+      "collaborators.studentID": studentID,
+      courseID: courseID,
+    });
+    if (board) {
+      const taskIndex = board.tasks.findIndex((task) => task.id === taskID);
+      if (taskIndex !== -1) {
+        board.tasks.splice(taskIndex, 1);
+        const response = await Board.findByIdAndUpdate(
+          board._id,
+          { tasks: board.tasks },
+          {
+            new: true,
+            runValidators: true,
+          }
+        );
+        return res.json(response);
       } else {
-        return res.status(404).json("Board not found");
+        return res.status(404).json("Task not found");
       }
-    } catch (error) {
-      console.error("Error during fetching store items:", error);
-      res.status(500).json("Error during fetching store items");
+    } else {
+      return res.status(404).json("Board not found");
     }
+  } catch (error) {
+    console.error("Error during fetching store items:", error);
+    res.status(500).json("Error during fetching store items");
   }
-);
+});
 
 router.delete(
-  "/boards/column/:collaboratorID/:courseID/:columnID",
+  "/boards/column/:studentID/:courseID/:columnID",
   async (req, res) => {
     try {
-      const collaboratorID = req.params.collaboratorID;
+      const studentID = req.params.studentID;
       const courseID = req.params.courseID;
       const columnID = req.params.columnID;
       const board = await Board.findOne({
-        collaborators: collaboratorID,
+        "collaborators.studentID": studentID,
         courseID: courseID,
       });
       if (board) {
@@ -178,15 +183,15 @@ router.delete(
 );
 
 router.post(
-  "/boards/addTask/:collaboratorID/:courseID/:columnID",
+  "/boards/addTask/:studentID/:courseID/:columnID",
   async (req, res) => {
     try {
-      const collaboratorID = req.params.collaboratorID;
+      const studentID = req.params.studentID;
       const courseID = req.params.courseID;
       const columnID = req.params.columnID;
       const result = await Board.updateOne(
         {
-          collaborators: collaboratorID,
+          "collaborators.studentID": studentID,
           courseID: courseID,
         },
         {
@@ -217,11 +222,13 @@ router.post(
 
 router.post("/boards/addColumn", async (req, res) => {
   try {
-    const collaborators = req.body.collaborators;
+    const studentID = req.body.studentID;
     const courseID = req.body.courseID;
+    const student = await Student.findOne({ regID: studentID });
     const result = await Board.updateOne(
       {
-        collaborators: collaborators,
+        "collaborators.studentID": studentID,
+        "collaborators.supervisorID": student.supervisorID,
         courseID: courseID,
       },
       {
@@ -247,17 +254,17 @@ router.post("/boards/addColumn", async (req, res) => {
 });
 
 router.put(
-  "/boards/editTask/:collaboratorID/:courseID/:taskID",
+  "/boards/editTask/:studentID/:courseID/:taskID",
   async (req, res) => {
     try {
-      const collaboratorID = req.params.collaboratorID;
+      const studentID = req.params.studentID;
       const courseID = req.params.courseID;
       const taskID = req.params.taskID;
       const title = req.body.title;
       const describtion = req.body.describtion;
 
       const board = await Board.findOne({
-        collaborators: collaboratorID,
+        "collaborators.studentID": studentID,
         courseID: courseID,
         "tasks.id": taskID,
       });
@@ -289,15 +296,15 @@ router.put(
 );
 
 router.put(
-  "/boards/editColumnTitle/:collaboratorID/:courseID/:columnID",
+  "/boards/editColumnTitle/:studentID/:courseID/:columnID",
   async (req, res) => {
     try {
-      const collaboratorID = req.params.collaboratorID;
+      const studentID = req.params.studentID;
       const courseID = req.params.courseID;
       const columnID = req.params.columnID;
 
       const board = await Board.findOne({
-        collaborators: collaboratorID,
+        "collaborators.studentID": studentID,
         courseID: courseID,
         "columns.id": columnID,
       });
@@ -333,14 +340,14 @@ router.put(
 );
 
 router.put(
-  "/boards/editBoarderOrder/:collaboratorID/:courseID",
+  "/boards/editBoarderOrder/:studentID/:courseID",
   async (req, res) => {
     try {
-      const collaboratorID = req.params.collaboratorID;
+      const studentID = req.params.studentID;
       const courseID = req.params.courseID;
 
       const board = await Board.findOne({
-        collaborators: collaboratorID,
+        "collaborators.studentID": studentID,
         courseID: courseID,
       });
       if (board) {

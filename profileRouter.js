@@ -27,12 +27,7 @@ router.post("/profileInfo", async (req, res) => {
       if (!admin) {
         return res.json(nullObject("admin"));
       } else {
-        res.json({
-          ID: admin.ID,
-          name: admin.name,
-          email: admin.email,
-          profileImage: admin.profileImage,
-        });
+        res.json(admin);
       }
     } else if (role === "student") {
       const student = await Student.findOne({ regID });

@@ -88,14 +88,16 @@ router.put("/student/updateSkillsVector", async (req, res) => {
   const { regID, skillsVector } = req.body;
 
   if (!regID || !skillsVector) {
-    return res.status(400).json("Registration ID and Skills Vector are required.");
+    return res
+      .status(400)
+      .json("Registration ID and Skills Vector are required.");
   }
 
   try {
     const updatedStudent = await Student.findOneAndUpdate(
-      { regID: regID }, 
+      { regID: regID },
       { $set: { skillsVector: skillsVector } },
-      { new: true } 
+      { new: true }
     );
 
     if (!updatedStudent) {
