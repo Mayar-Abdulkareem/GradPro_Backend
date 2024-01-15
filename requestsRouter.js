@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
 const { Student, Professor } = require("./loginRouter");
+const { writeNotification } = require("./firebase");
 
 const requestSchema = new mongoose.Schema({
   senderID: String,
@@ -97,7 +98,7 @@ router.put("/requests/sendPeerRequest", async (req, res) => {
     });
 
     const receiver = await Student.findOne({ regID: req.body.receiverID });
-
+    const sender = await Student.findOne({ regID: req.body.senderID });
     if (!receiver) {
       res
         .status(404)
@@ -143,7 +144,11 @@ router.put("/requests/sendPeerRequest", async (req, res) => {
         runValidators: true,
       }
     );
-
+    writeNotification(
+      senderID,
+      receiverID,
+      `You have a new peer request from ${sender.name} `
+    );
     res.json("Successfully sent the peer request.");
   } catch (error) {
     console.error("Error at /requests/peerRequest endpoint:", error);
@@ -183,7 +188,11 @@ router.put("/requests/cancelPeerRequest", async (req, res) => {
         runValidators: true,
       }
     );
-
+    writeNotification(
+      requestItem.receiverID,
+      senderID,
+      `Your request to ${requestItem.receiverName} was denied`
+    );
     res.json("Successfully canceled the peer request.");
   } catch (error) {
     console.error("Error at /requests/cancelPeerRequest endpoint:", error);
@@ -251,75 +260,91 @@ router.put("/requests/acceptPeerRequest", async (req, res) => {
       senderID: receiverID,
     });
 
-    await Request.findByIdAndUpdate(
-      receiverOutgoingRequest._id,
-      {
-        type: "peer",
-        status: "accepted",
-        receiverID: sender.regID,
-        receiverName: sender.name,
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+    if (receiverOutgoingRequest) {
+      await Request.findByIdAndUpdate(
+        receiverOutgoingRequest._id,
+        {
+          type: "peer",
+          status: "accepted",
+          receiverID: sender.regID,
+          receiverName: sender.name,
+        },
+        {
+          new: true,
+          runValidators: true,
+        }
+      );
+    }
 
     const receiverIncomingRequests = await Request.find({
       receiverID,
       senderID: { $ne: senderID },
     });
+    if (receiverIncomingRequests) {
+      await Promise.all(
+        receiverIncomingRequests.map(async (request) => {
+          const student = await Student.findOne({ regID: request.senderID });
+          const supervisor = await Professor.findOne({
+            regID: student.supervisorID,
+          });
 
-    await Promise.all(
-      receiverIncomingRequests.map(async (request) => {
-        const student = await Student.findOne({ regID: request.senderID });
-        const supervisor = await Professor.findOne({
-          regID: student.supervisorID,
-        });
+          await Request.findByIdAndUpdate(
+            request._id,
+            {
+              type: "course",
+              status: "accepted",
+              receiverID: supervisor.regID,
+              receiverName: supervisor.name,
+            },
+            {
+              new: true,
+              runValidators: true,
+            }
+          );
 
-        await Request.findByIdAndUpdate(
-          request._id,
-          {
-            type: "course",
-            status: "accepted",
-            receiverID: supervisor.regID,
-            receiverName: supervisor.name,
-          },
-          {
-            new: true,
-            runValidators: true,
-          }
-        );
-      })
-    );
+          writeNotification(
+            request.receiverID,
+            request.senderID,
+            `Your request to ${request.receiverName} was denied`
+          );
+        })
+      );
+    }
 
     const senderIncomingRequests = await Request.find({
       receiverID: senderID,
       senderID: { $ne: receiverID },
     });
 
-    await Promise.all(
-      senderIncomingRequests.map(async (request) => {
-        const student = await Student.findOne({ regID: request.senderID });
-        const supervisor = await Professor.findOne({
-          regID: student.supervisorID,
-        });
+    if (senderIncomingRequests) {
+      await Promise.all(
+        senderIncomingRequests.map(async (request) => {
+          const student = await Student.findOne({ regID: request.senderID });
+          const supervisor = await Professor.findOne({
+            regID: student.supervisorID,
+          });
 
-        await Request.findByIdAndUpdate(
-          request._id,
-          {
-            type: "course",
-            status: "accepted",
-            receiverID: supervisor.regID,
-            receiverName: supervisor.name,
-          },
-          {
-            new: true,
-            runValidators: true,
-          }
-        );
-      })
-    );
+          await Request.findByIdAndUpdate(
+            request._id,
+            {
+              type: "course",
+              status: "accepted",
+              receiverID: supervisor.regID,
+              receiverName: supervisor.name,
+            },
+            {
+              new: true,
+              runValidators: true,
+            }
+          );
+          writeNotification(
+            request.receiverID,
+            request.senderID,
+            `Your request to ${request.receiverName} was denied`
+          );
+        })
+      );
+    }
 
     await Student.findByIdAndUpdate(
       sender._id,
@@ -342,7 +367,11 @@ router.put("/requests/acceptPeerRequest", async (req, res) => {
         runValidators: true,
       }
     );
-
+    writeNotification(
+      receiverID,
+      senderID,
+      `Your request to ${receiver.name} was accepted`
+    );
     res.json("Successfully accepted the peer request.");
   } catch (error) {
     console.error("Error at /requests/acceptPeerRequest endpoint:", error);
@@ -380,6 +409,11 @@ router.post("/request/supervisor", async (req, res) => {
     if (!request) {
       res.status(404).json("Failed to send the request");
     } else {
+      writeNotification(
+        sender.regID,
+        receiver.regID,
+        `You have a new request from ${sender.name} `
+      );
       res.json("Request successfully sent");
     }
   } catch (error) {
@@ -396,10 +430,15 @@ router.delete("/requests/supervisorRequest/:studentID", async (req, res) => {
       senderID: studentID,
     });
     const request = await Request.findByIdAndDelete(requestItem._id);
-    console.log(request);
+
     if (!request) {
       return res.status(404).json("Request not found");
     }
+    writeNotification(
+      requestItem.receiverID,
+      requestItem.senderID,
+      `Your request to ${requestItem.receiverName} was denied`
+    );
     res.json("deleted successfully");
   } catch (error) {
     console.error(error);
@@ -533,7 +572,11 @@ router.put("/requests/acceptSupervisorRequest", async (req, res) => {
         runValidators: true,
       }
     );
-
+    writeNotification(
+      receiver.regID,
+      sender.regID,
+      `Your request to ${receiver.name} was accepted`
+    );
     res.json("Successfully accepted the supervisor request.");
   } catch (error) {
     console.error(
