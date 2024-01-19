@@ -3,34 +3,47 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const { Student } = require("./loginRouter");
 
-// const boardSchema = new mongoose.Schema({
-//   courseID: String,
-//   columns: Array,
-//   regID: String,
-//   supervisorID: String
-// });
-
 const boardSchema = new mongoose.Schema({
   courseID: String,
   columns: Array,
-  tasks: Array,
-  collaborators: Object,
+  regID: String,
+  supervisorID: String
 });
+
+// const boardSchema = new mongoose.Schema({
+//   courseID: String,
+//   columns: Array,
+//   tasks: Array,
+//   collaborators: Object,
+// });
 
 const Board = mongoose.model("Board", boardSchema);
 
 // Mayar
 
-router.get("/boards/getBoard/:courseID/:regID", async (req, res) => {
+router.post("/boards/getBoard", async (req, res) => {
   try {
-    const courseID = req.params.courseID;
-    const regID = req.params.regID;
-    const board = await Board.findOne({
+    // const courseID = req.params.courseID;
+    // const regID = req.params.regID;
+    const { regID, courseID, supervisorID } = req.body;
+
+    let board = await Board.findOne({
       regID: regID,
       courseID: courseID,
     });
     if (!board) {
-      res.status(404).json("No Elements in the store");
+      board = new Board({
+        courseID: courseID,
+        columns: [], // Initialize columns as an empty array
+        regID: regID,
+        supervisorID: supervisorID
+      });
+
+      // Save the new board to the database
+      await board.save();
+
+      // Send the newly created board back to the client
+      res.status(201).json(board);
     } else {
       res.json(board);
     }
