@@ -3,19 +3,19 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const { Student } = require("./loginRouter");
 
-// const boardSchema = new mongoose.Schema({
-//   courseID: String,
-//   columns: Array,
-//   regID: String,
-//   supervisorID: String
-// });
-
 const boardSchema = new mongoose.Schema({
   courseID: String,
   columns: Array,
-  tasks: Array,
-  collaborators: Object,
+  regID: String,
+  supervisorID: String,
 });
+
+// const boardSchema = new mongoose.Schema({
+//   courseID: String,
+//   columns: Array,
+//   tasks: Array,
+//   collaborators: Object,
+// });
 
 const Board = mongoose.model("Board", boardSchema);
 

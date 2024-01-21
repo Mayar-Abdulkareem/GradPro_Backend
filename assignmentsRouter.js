@@ -55,6 +55,8 @@ router.get("/assignments/:assignmentID", async (req, res) => {
     const assignment = await Assignment.findOne({
       _id: new ObjectId(assignmentID),
     });
+    console.log(assignment);
+    console.log(assignment.file);
     if (!assignment || assignment.length === 0) {
       res.json({});
     } else {
@@ -64,9 +66,12 @@ router.get("/assignments/:assignmentID", async (req, res) => {
         deadline: assignment.deadline,
         courseID: assignment.courseID,
         file: {
-          fileName: assignment.file.fileName || "",
-          content: assignment.file.content.toString("base64") || "",
-          contentType: assignment.file.contentType || "",
+          fileName: (assignment.file && assignment.file.fileName) || "",
+          content:
+            (assignment.file.content &&
+              assignment.file.content.toString("base64")) ||
+            "",
+          contentType: (assignment.file && assignment.file.contentType) || "",
         },
       });
     }
@@ -171,19 +176,19 @@ router.post("/submissions/getSubmissionDetails", async (req, res) => {
       courseID,
       assignmentID,
     });
-
+    console.log(result);
     if (!result || result.length === 0) {
       res.json({});
     } else {
       res.json({
         id: result._id,
         text: result.text,
+        supervisorComment: result.supervisorComment,
         file: {
           fileName: result.file.fileName || "",
           content: result.file.content.toString("base64") || "",
           contentType: result.file.contentType || "",
         },
-        supervisorComment: result.supervisorComment,
       });
     }
   } catch (error) {

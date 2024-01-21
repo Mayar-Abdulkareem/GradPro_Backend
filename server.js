@@ -7,10 +7,18 @@ const app = express();
 const port = 3001;
 app.use(cors());
 
-mongoose.connect("mongodb://127.0.0.1:27017/GradPro", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
+mongoose.connect(
+  "mongodb+srv://gradpro:fhfaTAi2MBNDw6dS@gradpro.nz27yys.mongodb.net/GradPro",
+  {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  }
+);
+
+// mongoose.connect("mongodb://127.0.0.1:27017/GradPro", {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
+// });
 
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
