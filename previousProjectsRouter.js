@@ -17,7 +17,7 @@ const PreviousProject = mongoose.model(
   previousProjectSchema
 );
 
-const PAGE_SIZE = 16;
+const PAGE_SIZE = 6;
 
 router.get("/previousProjects/projectTypes", async (req, res) => {
   try {

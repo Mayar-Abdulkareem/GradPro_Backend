@@ -20,7 +20,7 @@ const storeSchema = new mongoose.Schema({
 
 const Store = mongoose.model("Store", storeSchema, "store");
 
-const PAGE_SIZE = 16;
+const PAGE_SIZE = 6;
 
 router.post("/store", async (req, res) => {
   try {
@@ -74,6 +74,7 @@ router.post("/store", async (req, res) => {
 
     // Construct result array with store items and corresponding student details
     const resultArr = storeItems.map((item) => {
+      console.log(item.showPhoneNumber)
       const studentDetails = studentMap[item.regID] || {};
       return {
         id: item._id,
@@ -206,7 +207,25 @@ router.post(
       if (!updatedStoreItem) {
         return res.status(404).json({ message: "Store Item Not Found" });
       }
-      res.status(200).json("Item updated successfully");
+      const updatedStoreItemObject = updatedStoreItem.toObject({ versionKey: false });
+      updatedStoreItemObject.id = updatedStoreItemObject._id.toString();
+      delete updatedStoreItemObject._id;
+
+      const student = await Student.findOne({ regID: updatedStoreItem.regID }).exec();
+
+      if (!student) {
+        return res.status(404).json({ message: "Student Not Found" });
+      }
+
+      const response = {
+        ...updatedStoreItemObject,
+          name: student.name,
+          email: student.email,
+          phoneNumber: student.phoneNumber,
+      };
+
+      console.log(response);
+      res.status(200).json(response);
     } catch (error) {
       console.error("Error during updating the store item:", error);
       res.status(500).json({ message: "Error during updating the store item" });

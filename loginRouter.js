@@ -28,6 +28,7 @@ const professorSchema = new mongoose.Schema({
   regID: String,
   password: String,
   name: String,
+  email: String,
   courseStudents: Array,
   profileImage: String,
 });

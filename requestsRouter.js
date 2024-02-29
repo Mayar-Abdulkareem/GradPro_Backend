@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const mongoose = require("mongoose");
-const { Student, Professor } = require("./loginRouter");
+const { Student, Professor, Course } = require("./loginRouter");
 const { writeNotification, deleteRequest } = require("./firebase");
 
 const requestSchema = new mongoose.Schema({
@@ -477,6 +477,28 @@ router.delete("/requests/supervisorRequest/:studentID", async (req, res) => {
     if (!request) {
       return res.status(404).json("Request not found");
     }
+    deleteRequest(studentID)
+    res.json("deleted successfully");
+  } catch (error) {
+    console.error(error);
+    res.status(500).json("Unable to delete the request");
+  }
+});
+
+router.delete("/requests/declineSupervisorRequest/:studentID", async (req, res) => {
+  try {
+    let studentID = req.params.studentID;
+    const requestItem = await Request.findOne({
+      senderID: studentID,
+    });
+    const request = await Request.findByIdAndDelete(requestItem._id);
+    
+    if (!request) {
+      return res.status(404).json("Request not found");
+    }
+    console.log(      requestItem.receiverID      )
+    console.log(      requestItem.senderID      )
+
 writeNotification(
       requestItem.receiverID,
       requestItem.senderID,
@@ -574,12 +596,16 @@ router.put("/requests/acceptSupervisorRequest", async (req, res) => {
         }
       );
     } else {
+      const course = await Course.findOne({
+        courseID
+      });
       await Professor.updateOne(
         { _id: receiver._id },
         {
           $addToSet: {
             courseStudents: {
               courseID: courseID,
+              courseName: course.courseName,
               students: [
                 {
                   id: senderID,

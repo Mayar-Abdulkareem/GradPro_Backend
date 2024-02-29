@@ -1,5 +1,7 @@
 const { Student, Professor, Admin } = require("./loginRouter");
 const { Course } = require("./coursesRouter");
+const { Configuration } = require("./configurationsRouter")
+
 const express = require("express");
 const router = express.Router();
 const multer = require("multer");
@@ -15,11 +17,19 @@ router.post("/profileInfo", async (req, res) => {
       if (!professor) {
         return res.json(nullObject("professor"));
       } else {
+        console.log({
+          regID: professor.regID,
+          name: professor.name,
+          email: professor.email,
+          profileImage: professor.profileImage,
+          courseStudents: professor.courseStudents
+        })
         res.json({
           regID: professor.regID,
           name: professor.name,
           email: professor.email,
           profileImage: professor.profileImage,
+          courseStudents: professor.courseStudents
         });
       }
     } else if (role === "admin") {
@@ -69,6 +79,11 @@ router.post("/profileInfo", async (req, res) => {
         ? await Professor.findOne({ regID: student.supervisorID })
         : null;
 
+        const response = await axios.get('http://127.0.0.1:3001/configuration/checkDeadlines');
+
+
+        const { registrationFinished, peerRegistrationFinished } = response.data;
+
       res.json({
         regID: student.regID,
         name: student.name,
@@ -80,6 +95,8 @@ router.post("/profileInfo", async (req, res) => {
         supervisor: supervisor ? supervisor.name : null,
         skillsVector: student.skillsVector,
         courses: registeredCourses,
+        registrationFinished, 
+        peerRegistrationFinished 
       });
     }
   } catch (error) {

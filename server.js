@@ -7,18 +7,18 @@ const app = express();
 const port = 3001;
 app.use(cors());
 
-mongoose.connect(
-  "mongodb+srv://gradpro:fhfaTAi2MBNDw6dS@gradpro.nz27yys.mongodb.net/GradPro",
-  {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  }
-);
+// mongoose.connect(
+//   "mongodb+srv://gradpro:fhfaTAi2MBNDw6dS@gradpro.nz27yys.mongodb.net/GradPro",
+//   {
+//     useNewUrlParser: true,
+//     useUnifiedTopology: true,
+//   }
+// );
 
-// mongoose.connect("mongodb://127.0.0.1:27017/GradPro", {
-//   useNewUrlParser: true,
-//   useUnifiedTopology: true,
-// });
+mongoose.connect("mongodb://127.0.0.1:27017/GradPro", {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 const db = mongoose.connection;
 db.on("error", console.error.bind(console, "MongoDB connection error:"));
@@ -44,6 +44,8 @@ const tagsRoutes = require("./tagsRouter");
 const peerMatchingRoutes = require("./peerMatchingRouter");
 const assignmentsRoutes = require("./assignmentsRouter");
 const profileRoutes = require("./profileRouter");
+const configurationsRoutes = require("./configurationsRouter");
+
 
 app.get("/health", (req, res) => {
   return res.send("Healthy");
@@ -60,3 +62,4 @@ app.use(tagsRoutes);
 app.use(peerMatchingRoutes);
 app.use(assignmentsRoutes);
 app.use(profileRoutes);
+app.use(configurationsRoutes);
